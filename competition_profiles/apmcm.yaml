@@ -1,0 +1,37 @@
+profile_id: apmcm_v1
+competition_name: Asia and Pacific Mathematical Contest in Modeling (APMCM)
+rule_version: "1.0"
+mode: contest_compliant
+notes: >
+  Template profile. CONFIRM the current official APMCM rules and update before
+  any real use. Copilot positioning only.
+source_reference: "Update with the official APMCM rules document for the year."
+
+allowed_capabilities:
+  problem_parsing: true
+  method_retrieval: true
+  strategy_suggestions: true
+  code_generation: true
+  sandbox_execution: true
+  report_drafting: true
+  citation_verification: true
+  latex_export: true
+  auto_export: false
+
+required_checkpoints:
+  - problem_understanding
+  - strategy_selection
+  - final_report
+
+required_disclosure_fields:
+  - provider
+  - model_identifier
+  - purpose
+  - stage
+  - human_edits
+  - human_confirmation
+
+restricted_actions:
+  - hidden_ai_usage
+  - fabricated_metrics
+  - export_without_final_approval

@@ -1,0 +1,25 @@
+profile_id: practice_v1
+competition_name: Practice / Training Mode
+rule_version: "1.0"
+mode: practice
+notes: >
+  Full automation permitted for learning and experimentation. All audit logs
+  are still preserved. Not for real contest submission.
+
+allowed_capabilities:
+  problem_parsing: true
+  method_retrieval: true
+  strategy_suggestions: true
+  code_generation: true
+  sandbox_execution: true
+  report_drafting: true
+  citation_verification: true
+  latex_export: true
+  auto_export: true
+
+required_checkpoints: []          # checkpoints optional in practice mode
+
+required_disclosure_fields: []
+
+restricted_actions:
+  - fabricated_metrics             # never allowed in any mode

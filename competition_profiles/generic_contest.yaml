@@ -1,0 +1,36 @@
+profile_id: generic_contest_compliant_v1
+competition_name: Generic Mathematical Modeling Competition
+rule_version: "1.0"
+mode: contest_compliant
+notes: >
+  A conservative profile for an unspecified competition. Human approval is
+  required at all three checkpoints and an AI-use disclosure is exported.
+
+allowed_capabilities:
+  problem_parsing: true
+  method_retrieval: true
+  strategy_suggestions: true
+  code_generation: true
+  sandbox_execution: true
+  report_drafting: true
+  citation_verification: true
+  latex_export: true
+  auto_export: false              # final export needs human approval
+
+required_checkpoints:
+  - problem_understanding
+  - strategy_selection
+  - final_report
+
+required_disclosure_fields:
+  - provider
+  - model_identifier
+  - purpose
+  - stage
+  - human_edits
+  - human_confirmation
+
+restricted_actions:
+  - hidden_ai_usage
+  - fabricated_metrics
+  - export_without_final_approval
