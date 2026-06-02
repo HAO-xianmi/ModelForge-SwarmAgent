@@ -66,8 +66,18 @@ Living status report for ModelForge-Swarm. Updated continuously per working rule
 ## Partial modules
 _None yet._
 
-## Pending modules
-Everything in Phases D–G.
+### Phase D (in progress) — SandboxRunner ✅
+- `services/sandbox/base.py` — `SandboxRunner` Protocol, `SandboxRequest`, import allowlist, output collection.
+- `services/sandbox/workspace.py` — workspace setup, **static AST import inspection**, metrics.json collection.
+- `services/sandbox/subprocess_runner.py` — REAL local execution: timeout, scrubbed env (secrets removed, network discouraged), POSIX rlimits, captured streams.
+- `services/sandbox/docker_runner.py` — full spec §20 container runner (non-root, --network none, ro mounts, mem/cpu/pids limits, cap-drop). Implemented; unexecuted on this host (🚫 no Docker).
+- `services/sandbox/factory.py` — `docker_available()` probe + `select_sandbox_runner()` auto-select.
+- `docker/sandbox/` — Dockerfile (non-root, pinned science stack) + requirements + entrypoint.
+
+## Pending modules (Phase D remainder)
+Ingestion, data profiler, method library, pilots, formal experiment pipeline +
+debug, baselines, robustness, auditor, evidence registry, citation registry,
+compliance engine. Then Phases E–G.
 
 ---
 
