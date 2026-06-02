@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modelforge-swarm"
+version = "0.1.0"
+description = "An auditable multi-agent copilot for mathematical modeling"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "ModelForge-Swarm contributors" }]
+keywords = ["multi-agent", "mathematical-modeling", "langgraph", "copilot", "reproducibility"]
+
+dependencies = [
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",
+    "typer>=0.12",
+    "rich>=13.7",
+    "pyyaml>=6.0",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "openpyxl>=3.1",
+    "pypdf>=4.2",
+    "langgraph>=0.2",
+]
+
+[project.optional-dependencies]
+science = [
+    "scipy>=1.12",
+    "scikit-learn>=1.4",
+    "statsmodels>=0.14",
+    "networkx>=3.2",
+    "matplotlib>=3.8",
+    "pulp>=2.8",
+]
+dev = [
+    "pytest>=8.1",
+    "pytest-cov>=5.0",
+    "ruff>=0.4",
+    "mypy>=1.9",
+    "types-pyyaml>=6.0",
+    "pandas-stubs>=2.2",
+]
+
+[project.scripts]
+modelforge = "modelforge.cli.main:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["modelforge*"]
+
+[tool.setuptools.package-data]
+modelforge = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "C4", "SIM", "RUF"]
+ignore = ["B008", "RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]
+
+[tool.mypy]
+python_version = "3.12"
+packages = ["modelforge"]
+mypy_path = "src"
+plugins = ["pydantic.mypy"]
+warn_unused_configs = true
+warn_redundant_casts = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_return_any = false
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q --strict-markers"
+markers = [
+    "integration: integration tests across modules",
+    "e2e: full end-to-end workflow tests",
+    "security: security boundary tests",
+    "requires_docker: tests needing a Docker daemon",
+    "requires_latex: tests needing a LaTeX compiler",
+]
+
+[tool.coverage.run]
+source = ["modelforge"]
+branch = true

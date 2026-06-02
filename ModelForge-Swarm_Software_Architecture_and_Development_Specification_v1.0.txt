@@ -1,0 +1,3794 @@
+MODELForge-SWARM
+Software Architecture and Development Specification
+Version 1.0
+Status: Architecture Baseline for Implementation
+Language: English
+Document Type: Plain-Text Architecture Book
+Project Type: Auditable Multi-Agent Mathematical Modeling Copilot
+Recommended Public Positioning: Training Platform, Research Prototype, and Human-Supervised Modeling Copilot
+
+======================================================================
+DOCUMENT CONTROL
+======================================================================
+
+Document Name:
+    ModelForge-Swarm Software Architecture and Development Specification
+
+Version:
+    1.0
+
+Primary Purpose:
+    Define a complete, implementation-ready architecture for a multi-agent
+    mathematical modeling copilot that can parse problem statements, inspect
+    datasets, retrieve methods, propose multiple strategies, execute code,
+    validate experiments, generate evidence-grounded report drafts, preserve
+    audit trails, and support explicit human approval checkpoints.
+
+Intended Readers:
+    - Project owner
+    - Backend engineers
+    - Frontend engineers
+    - AI application engineers
+    - Data scientists
+    - Research collaborators
+    - Open-source contributors
+    - Technical reviewers
+    - Interviewers evaluating the project
+
+Normative Language:
+    - MUST: mandatory requirement
+    - MUST NOT: prohibited behavior
+    - SHOULD: recommended behavior unless a documented reason exists
+    - SHOULD NOT: discouraged behavior unless a documented reason exists
+    - MAY: optional behavior
+
+Public Positioning:
+    ModelForge-Swarm MUST be described as a mathematical modeling copilot,
+    training platform, and research prototype. It MUST NOT be publicly
+    marketed as an autonomous contest-submission engine, an automatic
+    competition winner, or a system that bypasses competition rules.
+
+======================================================================
+TABLE OF CONTENTS
+======================================================================
+
+1. Executive Summary
+2. Product Vision
+3. Scope, Goals, and Non-Goals
+4. Design Principles
+5. Operating Modes
+6. High-Level Architecture
+7. Control Plane
+8. Reasoning Agent Catalog
+9. Deterministic Service Catalog
+10. Shared Blackboard State Model
+11. Artifact Registry
+12. Evidence Registry
+13. End-to-End Workflow
+14. State Machine Specification
+15. Problem Ingestion and Parsing
+16. Domain Analysis and Method Retrieval
+17. Strategy Generation, Debate, and Selection
+18. Pilot Experiments
+19. Data Profiling and Preparation
+20. Code Generation, Sandbox Execution, and Debugging
+21. Baselines, Robustness Testing, and Experiment Auditing
+22. Evidence-Constrained Report Generation
+23. Citation Verification
+24. Competition Compliance Engine
+25. Human-in-the-Loop Checkpoints
+26. API Design
+27. Database Design
+28. Storage Layout
+29. Frontend Product Design
+30. Security Model
+31. Observability and Auditability
+32. Reliability and Failure Recovery
+33. Performance and Cost Control
+34. Deployment Architecture
+35. Repository Structure
+36. Configuration Model
+37. Prompt Contract Design
+38. Testing Strategy
+39. Benchmark and Evaluation Framework
+40. Development Roadmap
+41. Acceptance Criteria
+42. Future Extensions
+Appendix A. Core Data Schemas
+Appendix B. Example Workflow Pseudocode
+Appendix C. Example Competition Profile
+Appendix D. Example Evidence Record
+Appendix E. Example API Payloads
+Appendix F. Example Run Directory
+Appendix G. Engineering Conventions
+
+======================================================================
+1. EXECUTIVE SUMMARY
+======================================================================
+
+ModelForge-Swarm is an auditable, reproducible, and human-supervised
+multi-agent platform for mathematical modeling workflows.
+
+The system accepts:
+    - A mathematical modeling problem statement
+    - Optional PDF documents
+    - Optional images
+    - Optional spreadsheets
+    - Optional CSV datasets
+    - Optional competition rules
+    - Optional user constraints
+    - Optional prior research materials
+
+The system produces:
+    - A structured problem card
+    - Domain analysis
+    - Retrieved modeling methods
+    - Multiple candidate modeling strategies
+    - A structured critique report
+    - Pilot experiment results
+    - A selected or merged strategy
+    - Data profiling reports
+    - Executable code
+    - Sandbox execution logs
+    - Baseline comparisons
+    - Robustness and sensitivity analyses
+    - Evidence records
+    - Verified citations
+    - A report outline
+    - A report draft
+    - A LaTeX project
+    - A PDF export
+    - A reproducibility package
+    - An AI-use disclosure record when required
+    - A full audit trail
+
+ModelForge-Swarm is not a collection of chatbots exchanging messages without
+control. It is a stateful engineering system with explicit process stages,
+well-defined responsibilities, structured outputs, deterministic services,
+quality gates, bounded retry loops, and human approval points.
+
+The core architectural decision is:
+
+    Use a state machine and a shared blackboard as the system backbone.
+    Use language-model agents only for tasks that require reasoning.
+    Use deterministic services for tasks that must be reproducible.
+
+The system combines two complementary ideas:
+
+    1. A lightweight multi-agent swarm core:
+       - Supervisor
+       - Shared blackboard
+       - Parallel modelers
+       - Critic or judge
+       - Code execution
+       - Writer
+       - Human checkpoints
+
+    2. A stronger engineering layer:
+       - Pilot experiments before final model selection
+       - Experiment audit gates
+       - Baseline enforcement
+       - Robustness testing
+       - Evidence registry
+       - Citation verification
+       - Competition compliance profiles
+       - Reproducibility packaging
+       - Benchmarking
+       - Cost control
+       - Observability
+
+The result is a project that is realistic to implement, technically credible,
+and suitable for GitHub presentation, research exploration, and portfolio use.
+
+======================================================================
+2. PRODUCT VISION
+======================================================================
+
+2.1 Vision Statement
+
+ModelForge-Swarm aims to provide a disciplined computational workflow for
+open-ended mathematical modeling tasks.
+
+The system should help users answer the following questions:
+
+    - What exactly is the problem asking?
+    - What information is available?
+    - What information is missing?
+    - Which modeling methods are applicable?
+    - Which candidate strategy is most defensible?
+    - Which strategy works best in actual experiments?
+    - Can the code run successfully?
+    - Are the results reproducible?
+    - Are the conclusions supported by evidence?
+    - Are citations real and relevant?
+    - Are the outputs compliant with the selected operating mode?
+    - Which decisions were made automatically?
+    - Which decisions were confirmed by a human?
+
+2.2 Product Value
+
+The project is designed to demonstrate competence in:
+    - Multi-agent systems
+    - Workflow orchestration
+    - State machine design
+    - Structured LLM outputs
+    - Tool-using agents
+    - Code sandboxing
+    - Data science experimentation
+    - Experiment reproducibility
+    - Retrieval-augmented generation
+    - Evidence-grounded generation
+    - Prompt engineering
+    - Full-stack product engineering
+    - Security boundaries
+    - Cost-aware AI application design
+    - Benchmarking and evaluation
+
+2.3 Public Product Message
+
+Recommended short description:
+
+    ModelForge-Swarm is an auditable multi-agent copilot for mathematical
+    modeling. It parses problem statements, explores multiple strategies,
+    runs reproducible experiments in a sandbox, validates evidence, and
+    generates structured report drafts with human approval checkpoints.
+
+Recommended tagline:
+
+    From problem statement to reproducible modeling workflow.
+
+======================================================================
+3. SCOPE, GOALS, AND NON-GOALS
+======================================================================
+
+3.1 In Scope
+
+The initial platform MUST support:
+    - PDF and text problem ingestion
+    - CSV and spreadsheet dataset ingestion
+    - Structured problem decomposition
+    - Domain classification
+    - Local method-library retrieval
+    - At least three candidate strategies
+    - Structured critique
+    - Strategy scoring
+    - Low-cost pilot experiments
+    - Python code generation
+    - Docker sandbox execution
+    - Automatic traceback capture
+    - Limited automatic debugging
+    - Baseline comparison
+    - Sensitivity testing
+    - Evidence registration
+    - Markdown report drafting
+    - LaTeX export
+    - PDF compilation
+    - Human checkpoints
+    - Run-level audit logs
+    - Reproducibility bundle export
+
+3.2 Recommended Phase-Two Scope
+
+The platform SHOULD later support:
+    - Excel workbook inspection
+    - Image-assisted table reading
+    - Research-paper retrieval
+    - Citation metadata resolution
+    - Multiple sandbox providers
+    - Multiple model providers
+    - Competition profiles
+    - Web console
+    - React Flow workflow visualization
+    - Report section approval
+    - Token budget monitoring
+    - Cost dashboards
+    - Benchmark suite
+    - Ablation experiments
+
+3.3 Long-Term Scope
+
+The platform MAY later support:
+    - Optimization intermediate representation
+    - Solver-specific code generation
+    - Time-series specialist modules
+    - Graph-analysis specialist modules
+    - Differential-equation specialist modules
+    - Multi-modal chart inspection
+    - Team collaboration
+    - Versioned prompt registry
+    - Multi-tenant deployment
+    - Plugin marketplace
+    - MCP-compatible tool interface
+    - Offline local-model deployment
+
+3.4 Non-Goals
+
+The project MUST NOT:
+    - Promise competition awards
+    - Generate fabricated experimental values
+    - Treat unexecuted code as validated code
+    - Treat unsupported claims as verified claims
+    - Hide AI involvement
+    - Bypass competition rules
+    - Allow unlimited autonomous loops
+    - Use agent count as a proxy for system quality
+    - Depend on unrestricted agent-to-agent chatting
+    - Depend on a single proprietary model provider
+    - Expose host-system secrets to sandbox code
+    - Execute arbitrary code without resource limits
+
+======================================================================
+4. DESIGN PRINCIPLES
+======================================================================
+
+4.1 Explicit State Over Free Conversation
+
+Agents MUST exchange information through structured state updates and
+versioned artifacts.
+
+Agents SHOULD NOT depend on long conversational histories.
+
+Every important decision MUST be representable as:
+    - An input state
+    - A named operation
+    - A structured output
+    - A state transition
+    - A traceable artifact or event
+
+4.2 Standard Operating Procedure Before Prompt Design
+
+The engineering order MUST be:
+    1. Define the workflow
+    2. Define state fields
+    3. Define component boundaries
+    4. Define input and output schemas
+    5. Define quality gates
+    6. Define failure paths
+    7. Define prompts
+    8. Implement model routing
+
+4.3 Experiments Before Final Decisions
+
+The system MUST NOT select a final strategy solely from textual arguments when
+a low-cost experiment is feasible.
+
+At least one pilot experiment SHOULD be run for each viable candidate
+strategy.
+
+4.4 Evidence Before Writing
+
+Quantitative claims in the final report MUST be linked to evidence.
+
+A report-writing agent MUST NOT invent:
+    - Metrics
+    - Table values
+    - Chart values
+    - Experimental outcomes
+    - Citation metadata
+    - Model comparison results
+
+4.5 Deterministic Services for Deterministic Work
+
+The following tasks SHOULD be implemented as deterministic services rather
+than LLM agents:
+    - File hashing
+    - Dependency locking
+    - Dataset profiling
+    - Artifact storage
+    - Citation metadata checks
+    - PDF compilation
+    - Resource accounting
+    - Sandbox timeout control
+    - Random seed recording
+
+4.6 Bounded Autonomy
+
+Every loop MUST have:
+    - A maximum retry count
+    - A timeout
+    - A budget limit
+    - An escalation path
+    - A human-visible failure record
+
+4.7 Recovery by Design
+
+Long-running workflows MUST support:
+    - Persistent state
+    - Resume after interruption
+    - Human review
+    - Partial re-execution
+    - Artifact reuse
+    - Stage-level rollback
+
+4.8 Explainability by Default
+
+Every selected strategy MUST include:
+    - Selection rationale
+    - Rejected alternatives
+    - Major assumptions
+    - Risks
+    - Required experiments
+    - Known limitations
+
+======================================================================
+5. OPERATING MODES
+======================================================================
+
+5.1 Practice Mode
+
+Purpose:
+    Training, learning, public-problem replay, and personal experimentation.
+
+Behavior:
+    - Full automation MAY be enabled.
+    - Report drafting MAY be fully enabled.
+    - Automatic strategy generation MAY be enabled.
+    - Automatic code generation MAY be enabled.
+    - Automatic report export MAY be enabled.
+    - All audit logs MUST still be preserved.
+
+5.2 Contest-Compliant Mode
+
+Purpose:
+    Assistance during a real competition, subject to the rules of that
+    competition.
+
+Behavior:
+    - A competition profile MUST be loaded.
+    - Human approval checkpoints MUST be enabled.
+    - AI-use records MUST be preserved.
+    - Restricted actions MUST be disabled according to the profile.
+    - The system MUST clearly separate suggestions from human-confirmed work.
+    - The system MUST export an AI disclosure package when required.
+    - The user MUST remain responsible for final submission decisions.
+
+5.3 Research Mode
+
+Purpose:
+    Benchmarking, model comparisons, workflow experiments, and academic
+    evaluation.
+
+Behavior:
+    - Full decision traces MUST be recorded.
+    - Model identifiers MUST be recorded.
+    - Prompt versions MUST be recorded.
+    - Token usage MUST be recorded.
+    - Latency MUST be recorded.
+    - Cost estimates MUST be recorded.
+    - Ablation settings MUST be recorded.
+    - Human-review scores MAY be attached.
+
+5.4 Mode Selection Rule
+
+A run MUST have exactly one active mode.
+
+Mode changes after execution begins SHOULD require:
+    - Explicit user confirmation
+    - A new audit event
+    - Revalidation of enabled tools
+    - Revalidation of checkpoints
+
+======================================================================
+6. HIGH-LEVEL ARCHITECTURE
+======================================================================
+
+6.1 Architecture Layers
+
+The system is divided into five layers:
+
+    Layer 1: User Interfaces
+    Layer 2: Control Plane
+    Layer 3: Reasoning Agents
+    Layer 4: Deterministic Services
+    Layer 5: Storage and Infrastructure
+
+6.2 Logical Architecture Diagram
+
++--------------------------------------------------------------------+
+| USER INTERFACES                                                    |
+| CLI | Web Console | REST API                                      |
+| Upload files | Start runs | Review checkpoints | Export artifacts  |
++-------------------------------+------------------------------------+
+                                |
+                                v
++--------------------------------------------------------------------+
+| CONTROL PLANE                                                      |
+| Supervisor | LangGraph Workflow | Checkpoint Manager               |
+| Budget Manager | Policy Guard | Run Coordinator                    |
++-------------------------------+------------------------------------+
+                                |
+                                v
++--------------------------------------------------------------------+
+| SHARED BLACKBOARD                                                  |
+| Run State | Problem Card | Strategy Candidates | Experiments       |
+| Evidence | Citations | Human Feedback | Report State               |
++-------------------------------+------------------------------------+
+                                |
+          +---------------------+----------------------+
+          |                                            |
+          v                                            v
++--------------------------------------+  +---------------------------+
+| REASONING AGENTS                     |  | DETERMINISTIC SERVICES    |
+| Parser | Analyst | Retriever         |  | Ingestion | Profiling     |
+| Proposers | Skeptic | Judge          |  | Sandbox | Experiments     |
+| Code Author | Debugger               |  | Evidence | Citation       |
+| Paper Architect | Paper Writer       |  | Compliance | Export       |
++----------------------+---------------+  +--------------+------------+
+                       |                                 |
+                       +------------------+--------------+
+                                          |
+                                          v
++--------------------------------------------------------------------+
+| STORAGE AND INFRASTRUCTURE                                         |
+| PostgreSQL | Redis | Object Storage | Local Runs Directory         |
+| Docker | Queue Workers | Model Providers | Vector Store            |
++--------------------------------------------------------------------+
+
+6.3 Architectural Boundaries
+
+Boundary A: Agent-to-Agent
+    Agents MUST exchange structured artifacts through the blackboard.
+    Free-form debate MAY occur only inside a bounded debate step and MUST be
+    summarized into a structured output.
+
+Boundary B: Agent-to-Tool
+    Each agent MUST receive only the minimum tool permissions required.
+
+Boundary C: Writer-to-Evidence
+    Report-writing agents MUST only use claims that are registered and marked
+    as verified.
+
+Boundary D: Sandbox-to-Host
+    Sandbox code MUST be isolated from host credentials, host files outside
+    the mounted workspace, and unrestricted network access.
+
+Boundary E: Contest Mode
+    Tools, agents, and export actions MUST be governed by the active
+    competition profile.
+
+======================================================================
+7. CONTROL PLANE
+======================================================================
+
+7.1 Supervisor
+
+Type:
+    Deterministic workflow controller
+
+Responsibilities:
+    - Start runs
+    - Load configuration
+    - Initialize blackboard state
+    - Select the next node
+    - Enforce transition rules
+    - Limit retries
+    - Enforce budgets
+    - Pause at checkpoints
+    - Resume runs
+    - Mark runs as completed, failed, or cancelled
+
+The Supervisor MUST NOT:
+    - Generate modeling strategies
+    - Invent experimental conclusions
+    - Write report paragraphs
+    - Bypass failed quality gates
+    - Bypass required human checkpoints
+
+7.2 Checkpoint Manager
+
+Responsibilities:
+    - Create pending checkpoint records
+    - Persist checkpoint context
+    - Notify the interface layer
+    - Accept human approval
+    - Accept human modifications
+    - Accept rejection and rollback instructions
+    - Record actor, timestamp, and decision
+
+Checkpoint decisions:
+    - APPROVE
+    - APPROVE_WITH_EDITS
+    - REJECT_AND_RETRY
+    - RETURN_TO_STAGE
+    - CANCEL_RUN
+
+7.3 Budget Manager
+
+Responsibilities:
+    - Track LLM token usage
+    - Track estimated provider cost
+    - Track sandbox runtime
+    - Track retry counts
+    - Track file sizes
+    - Enforce hard limits
+    - Emit warning events
+    - Stop runs when limits are exceeded
+
+Recommended default limits for MVP:
+    - Strategy proposer instances: 3
+    - Debate rounds: 2
+    - Debug retries per script: 3
+    - Sandbox runtime per execution: 120 seconds
+    - Maximum active experiment variants: 20
+    - Maximum input bundle size: configurable
+    - Maximum total run duration: configurable
+
+7.4 Policy Guard
+
+Responsibilities:
+    - Read the operating mode
+    - Read the competition profile
+    - Determine allowed tools
+    - Determine allowed agent actions
+    - Determine required checkpoints
+    - Determine required disclosure records
+    - Reject prohibited transitions
+
+7.5 Run Coordinator
+
+Responsibilities:
+    - Assign run identifiers
+    - Create run directories
+    - Create initial database records
+    - Queue long tasks
+    - Collect completion events
+    - Persist run summaries
+
+======================================================================
+8. REASONING AGENT CATALOG
+======================================================================
+
+The MVP SHOULD use ten reasoning agent classes. Three strategy proposers SHOULD
+run in parallel as separate instances of the same class.
+
+8.1 ProblemParserAgent
+
+Purpose:
+    Convert raw input documents into a structured problem card.
+
+Inputs:
+    - Problem statement text
+    - Parsed PDF text
+    - Extracted tables
+    - Image descriptions if available
+    - File metadata
+    - Active operating mode
+    - Competition profile
+
+Outputs:
+    - problem_card.json
+    - parsing_notes.json
+    - missing_information.json
+
+Required output fields:
+    - title
+    - problem_summary
+    - subproblems
+    - objectives
+    - decision_variables
+    - constraints
+    - datasets
+    - required_outputs
+    - formatting_requirements
+    - ambiguities
+    - missing_information
+    - confidence
+    - source_references
+
+Invariant:
+    Each extracted requirement MUST include a source reference.
+
+Failure conditions:
+    - Missing required statement text
+    - Unreadable file
+    - Ambiguity that prevents safe continuation
+    - Unsupported file type
+
+8.2 DomainAnalystAgent
+
+Purpose:
+    Identify relevant domain concepts, modeling families, and risks.
+
+Inputs:
+    - problem_card.json
+    - available datasets
+    - optional user context
+
+Outputs:
+    - domain_analysis.json
+
+Required output fields:
+    - domain_tags
+    - likely_problem_families
+    - domain_assumptions
+    - key_terms
+    - data_requirements
+    - potential_external_facts
+    - research_questions
+    - risks
+    - recommended_specialists
+
+Invariant:
+    The agent MUST distinguish facts from assumptions.
+
+8.3 MethodRetrieverAgent
+
+Purpose:
+    Retrieve candidate modeling methods from a structured method library.
+
+Inputs:
+    - problem_card.json
+    - domain_analysis.json
+    - method library
+    - optional case library
+
+Outputs:
+    - retrieved_methods.json
+
+Each method record MUST include:
+    - method_id
+    - name
+    - category
+    - suitability_score
+    - applicability_conditions
+    - assumptions
+    - required_data
+    - advantages
+    - limitations
+    - computational_cost
+    - implementation_templates
+    - recommended_metrics
+    - common_failure_modes
+    - reference_ids
+
+Invariant:
+    Retrieved methods MUST come from registered library entries.
+
+8.4 StrategyProposerAgent
+
+Purpose:
+    Generate complete modeling strategies.
+
+Instances:
+    - interpretability_first
+    - performance_first
+    - innovation_first
+
+Optional fourth instance:
+    - low_cost_first
+
+Inputs:
+    - problem_card.json
+    - domain_analysis.json
+    - retrieved_methods.json
+    - resource limits
+    - competition profile
+
+Outputs:
+    - strategy_candidate_{id}.json
+
+Each strategy MUST include:
+    - strategy_id
+    - strategy_name
+    - design_goal
+    - subproblem_mapping
+    - method_stack
+    - assumptions
+    - variable_definitions
+    - mathematical_formulation
+    - data_requirements
+    - preprocessing_plan
+    - experiment_plan
+    - baseline_plan
+    - robustness_plan
+    - visualization_plan
+    - expected_artifacts
+    - estimated_runtime
+    - implementation_risk
+    - known_limitations
+    - fallback_plan
+
+Invariant:
+    The candidate MUST define a runnable pilot experiment.
+
+8.5 SkepticAgent
+
+Purpose:
+    Challenge each proposed strategy.
+
+Inputs:
+    - strategy candidates
+    - problem card
+    - dataset profile if available
+    - resource limits
+
+Outputs:
+    - skeptic_report.json
+
+Checks:
+    - Weak assumptions
+    - Missing constraints
+    - Misaligned objective functions
+    - Overfitting risks
+    - Data leakage risks
+    - Unsupported complexity
+    - Missing baseline
+    - Missing validation plan
+    - Runtime risks
+    - Reportability risks
+    - Compliance risks
+
+Output per candidate:
+    - severity-ranked issues
+    - required fixes
+    - optional improvements
+    - pilot experiment objections
+    - pass or revise recommendation
+
+Invariant:
+    SkepticAgent MUST NOT silently approve every strategy.
+
+8.6 StrategyJudgeAgent
+
+Purpose:
+    Select, merge, or reject candidate strategies.
+
+Inputs:
+    - strategy candidates
+    - skeptic report
+    - pilot experiment results
+    - resource limits
+    - user edits from checkpoint if any
+
+Outputs:
+    - selected_strategy.json
+    - strategy_decision_record.json
+
+Allowed decisions:
+    - SELECT
+    - MERGE
+    - REVISE
+    - REGENERATE
+    - ESCALATE_TO_HUMAN
+
+Scoring dimensions:
+    - Problem fit
+    - Data fit
+    - Feasibility
+    - Interpretability
+    - Experimental evidence
+    - Robustness potential
+    - Novelty
+    - Runtime cost
+    - Report quality potential
+    - Compliance
+
+Invariant:
+    The decision MUST reference actual pilot experiment evidence when available.
+
+8.7 CodeAuthorAgent
+
+Purpose:
+    Generate executable implementation code.
+
+Inputs:
+    - selected strategy
+    - dataset metadata
+    - data profile
+    - code templates
+    - sandbox limits
+
+Outputs:
+    - scripts/
+    - notebooks/
+    - requirements.lock or environment specification
+    - run_manifest.json
+
+Requirements:
+    - Use deterministic random seeds where applicable
+    - Save outputs to defined paths
+    - Emit machine-readable metrics
+    - Avoid hidden dependencies
+    - Avoid unrestricted network calls
+    - Separate preprocessing, modeling, evaluation, and plotting
+
+Invariant:
+    Every quantitative report artifact MUST be generated by executable code.
+
+8.8 DebuggerAgent
+
+Purpose:
+    Repair code execution failures with minimal changes.
+
+Inputs:
+    - source code
+    - traceback
+    - stdout
+    - stderr
+    - dependency metadata
+    - retry history
+
+Outputs:
+    - patch
+    - debug explanation
+    - updated code
+    - debug_patch_log.jsonl
+
+Rules:
+    - Prefer minimal patches
+    - Do not rewrite the entire project unless required
+    - Do not disable validation checks to force success
+    - Do not fabricate outputs
+    - Respect maximum retries
+
+Invariant:
+    Each patch MUST record the reason for the change.
+
+8.9 PaperArchitectAgent
+
+Purpose:
+    Design the report outline before drafting prose.
+
+Inputs:
+    - verified claims
+    - figures
+    - tables
+    - selected strategy
+    - citations
+    - competition template
+    - required sections
+
+Outputs:
+    - report_outline.json
+
+Each section record MUST include:
+    - section_id
+    - title
+    - purpose
+    - required_claim_ids
+    - required_figure_ids
+    - required_table_ids
+    - required_citation_ids
+    - word_budget
+    - human_review_required
+
+Invariant:
+    No section may request unsupported claims.
+
+8.10 PaperWriterAgent
+
+Purpose:
+    Draft evidence-grounded report text.
+
+Inputs:
+    - report outline
+    - verified claims
+    - figures
+    - tables
+    - verified citations
+    - template constraints
+    - style guide
+
+Outputs:
+    - report.md
+    - report.tex
+    - report_claim_map.json
+
+Rules:
+    - Every quantitative claim MUST cite a claim_id
+    - Every figure mention MUST cite a figure_id
+    - Every table mention MUST cite a table_id
+    - Every literature statement MUST cite a citation_id
+    - Unsupported claims MUST be omitted or explicitly marked for human review
+
+Invariant:
+    The writer MUST NOT add new experimental values.
+
+======================================================================
+9. DETERMINISTIC SERVICE CATALOG
+======================================================================
+
+9.1 Ingestion Service
+
+Responsibilities:
+    - Accept uploads
+    - Validate file types
+    - Store original files
+    - Compute hashes
+    - Extract text
+    - Extract tables
+    - Detect spreadsheets
+    - Produce ingestion manifest
+    - Preserve source references
+
+Supported MVP formats:
+    - .txt
+    - .md
+    - .pdf
+    - .csv
+    - .xlsx
+    - .zip
+
+9.2 Data Profiler
+
+Responsibilities:
+    - Column type inference
+    - Missing-value analysis
+    - Duplicate detection
+    - Outlier candidate detection
+    - Summary statistics
+    - Correlation summaries
+    - Category cardinality checks
+    - Date-range checks
+    - Unit metadata checks
+    - Data leakage heuristics
+
+Important rule:
+    Outliers MUST be flagged, not automatically deleted.
+
+9.3 Sandbox Runner
+
+Responsibilities:
+    - Build isolated execution environment
+    - Mount workspace
+    - Apply CPU limit
+    - Apply memory limit
+    - Apply disk quota
+    - Apply timeout
+    - Disable host secret access
+    - Restrict network access
+    - Capture logs
+    - Collect generated files
+    - Return structured status
+
+Sandbox states:
+    - QUEUED
+    - BUILDING
+    - RUNNING
+    - SUCCEEDED
+    - FAILED
+    - TIMED_OUT
+    - CANCELLED
+    - POLICY_BLOCKED
+
+9.4 Experiment Tracker
+
+Responsibilities:
+    - Assign experiment_id
+    - Record input hashes
+    - Record code commit hash
+    - Record seed
+    - Record dependencies
+    - Record runtime
+    - Record metrics
+    - Register outputs
+    - Register logs
+    - Link experiment to strategy
+
+9.5 Robustness Runner
+
+Responsibilities:
+    - Parameter sweeps
+    - Perturbation tests
+    - Extreme-case tests
+    - Baseline comparisons
+    - Ablation runs
+    - Repeated-seed runs
+    - Stability summaries
+
+9.6 Evidence Registry Service
+
+Responsibilities:
+    - Register claims
+    - Validate referenced artifacts
+    - Link claims to experiments
+    - Link claims to metrics
+    - Mark claims as verified, rejected, or pending
+    - Expose verified claims to writer
+    - Preserve provenance
+
+9.7 Citation Resolver
+
+Responsibilities:
+    - Normalize citation metadata
+    - Verify title
+    - Verify author list where available
+    - Verify year
+    - Verify DOI where available
+    - Verify URL where available
+    - Detect duplicates
+    - Record retrieval timestamp
+    - Mark unresolved citations
+
+9.8 Compliance Engine
+
+Responsibilities:
+    - Load competition profile
+    - Enable or disable capabilities
+    - Require checkpoints
+    - Preserve AI-use records
+    - Emit disclosure document
+    - Block restricted transitions
+    - Record rule version
+
+9.9 LaTeX Builder
+
+Responsibilities:
+    - Render template
+    - Copy figures
+    - Copy tables
+    - Generate bibliography
+    - Compile .tex
+    - Capture compilation log
+    - Export PDF
+    - Export source bundle
+
+9.10 Observability Service
+
+Responsibilities:
+    - Event logging
+    - Trace visualization
+    - Token accounting
+    - Latency tracking
+    - Error tracking
+    - Artifact links
+    - Human decision history
+    - Cost summaries
+
+======================================================================
+10. SHARED BLACKBOARD STATE MODEL
+======================================================================
+
+10.1 Purpose
+
+The Shared Blackboard is the authoritative state of a run.
+
+All agents MUST read from and write to the blackboard through typed update
+operations.
+
+No agent may rely on hidden persistent state.
+
+10.2 Required Top-Level Fields
+
+run_id
+mode
+status
+created_at
+updated_at
+competition_profile
+input_manifest
+problem_card
+domain_analysis
+retrieved_methods
+strategy_candidates
+skeptic_report
+pilot_experiments
+selected_strategy
+data_profile
+code_artifacts
+experiment_records
+baseline_results
+robustness_results
+evidence_claims
+citations
+report_outline
+report_artifacts
+judge_reports
+blocking_issues
+pending_checkpoint
+human_feedback
+budget_state
+audit_events
+export_state
+failure_state
+
+10.3 State Status Values
+
+CREATED
+INGESTING
+PARSING
+WAITING_FOR_CHECKPOINT_1
+RETRIEVING_METHODS
+GENERATING_STRATEGIES
+CRITIQUING_STRATEGIES
+RUNNING_PILOTS
+SELECTING_STRATEGY
+WAITING_FOR_CHECKPOINT_2
+PROFILING_DATA
+GENERATING_CODE
+RUNNING_SANDBOX
+DEBUGGING_CODE
+RUNNING_BASELINES
+RUNNING_ROBUSTNESS_TESTS
+AUDITING_EXPERIMENTS
+REGISTERING_EVIDENCE
+ARCHITECTING_REPORT
+WRITING_REPORT
+VERIFYING_CITATIONS
+RUNNING_JUDGE_PANEL
+WAITING_FOR_CHECKPOINT_3
+EXPORTING
+COMPLETED
+FAILED
+CANCELLED
+
+10.4 State Update Rules
+
+Rule 1:
+    State updates MUST be validated against a typed schema.
+
+Rule 2:
+    Each update MUST emit an audit event.
+
+Rule 3:
+    Each update MUST record:
+        - actor
+        - timestamp
+        - previous version
+        - new version
+        - changed fields
+        - reason
+
+Rule 4:
+    Large artifacts MUST be stored externally and referenced by artifact_id.
+
+Rule 5:
+    Human edits MUST be distinguishable from machine edits.
+
+======================================================================
+11. ARTIFACT REGISTRY
+======================================================================
+
+11.1 Purpose
+
+The Artifact Registry stores immutable references to generated or uploaded
+files.
+
+11.2 Artifact Types
+
+INPUT_FILE
+PARSED_TEXT
+EXTRACTED_TABLE
+PROBLEM_CARD
+DOMAIN_ANALYSIS
+METHOD_RETRIEVAL
+STRATEGY_CANDIDATE
+SKEPTIC_REPORT
+PILOT_SCRIPT
+PILOT_RESULT
+DATA_PROFILE
+NOTEBOOK
+SCRIPT
+DEPENDENCY_LOCK
+EXECUTION_LOG
+METRICS_FILE
+FIGURE
+TABLE
+BASELINE_RESULT
+ROBUSTNESS_RESULT
+EVIDENCE_RECORD
+CITATION_RECORD
+REPORT_OUTLINE
+REPORT_MARKDOWN
+REPORT_LATEX
+REPORT_PDF
+DISCLOSURE_RECORD
+REPRODUCIBILITY_BUNDLE
+
+11.3 Artifact Record
+
+Each artifact MUST include:
+    artifact_id
+    run_id
+    artifact_type
+    filename
+    storage_uri
+    content_hash
+    mime_type
+    size_bytes
+    created_at
+    created_by
+    source_artifact_ids
+    experiment_id if applicable
+    metadata
+    immutable
+
+11.4 Immutability Rule
+
+Registered artifacts MUST NOT be modified in place.
+
+Revisions MUST create a new artifact_id with a link to the prior artifact.
+
+======================================================================
+12. EVIDENCE REGISTRY
+======================================================================
+
+12.1 Purpose
+
+The Evidence Registry prevents unsupported report generation.
+
+12.2 Claim Types
+
+QUANTITATIVE_RESULT
+QUALITATIVE_OBSERVATION
+MODEL_COMPARISON
+ROBUSTNESS_CONCLUSION
+DATA_DESCRIPTION
+LIMITATION
+LITERATURE_STATEMENT
+COMPLIANCE_STATEMENT
+
+12.3 Claim Status
+
+PENDING
+VERIFIED
+REJECTED
+NEEDS_HUMAN_REVIEW
+
+12.4 Claim Requirements
+
+A quantitative claim MUST include:
+    - claim_id
+    - claim_type
+    - statement
+    - experiment_id
+    - metric_name
+    - metric_value
+    - artifact_ids
+    - verification_status
+    - verified_by
+    - created_at
+
+A literature claim MUST include:
+    - claim_id
+    - statement
+    - citation_ids
+    - verification_status
+    - source_notes
+
+12.5 Writer Access Rule
+
+The report-writing subsystem MAY use:
+    - VERIFIED claims
+    - NEEDS_HUMAN_REVIEW claims only when explicitly marked in the draft
+
+The report-writing subsystem MUST NOT use:
+    - REJECTED claims
+    - PENDING quantitative claims as factual statements
+
+======================================================================
+13. END-TO-END WORKFLOW
+======================================================================
+
+13.1 Complete Workflow
+
+START
+  |
+  v
+CreateRun
+  |
+  v
+IngestProblem
+  |
+  v
+LoadCompetitionProfile
+  |
+  v
+ParseProblem
+  |
+  v
+AnalyzeDomain
+  |
+  v
+[Checkpoint 1: Confirm Problem Understanding]
+  |
+  v
+RetrieveMethods
+  |
+  v
+GenerateStrategies x 3 in Parallel
+  |
+  v
+SkepticReview
+  |
+  v
+PreparePilotExperiments
+  |
+  v
+RunPilotExperiments
+  |
+  v
+SelectOrMergeStrategy
+  |
+  v
+[Checkpoint 2: Confirm Final Strategy]
+  |
+  v
+ProfileData
+  |
+  v
+GenerateFormalCode
+  |
+  v
+RunSandbox
+  |
+  +---- execution failed ----> DebugCode ----> RunSandbox
+  |
+  v
+RunBaselines
+  |
+  v
+RunRobustnessTests
+  |
+  v
+AuditExperiments
+  |
+  +---- quality gate failed ---> ReviseCode or ReviseStrategy
+  |
+  v
+RegisterEvidence
+  |
+  v
+ArchitectReport
+  |
+  v
+WriteReport
+  |
+  v
+VerifyCitations
+  |
+  v
+RunJudgePanel
+  |
+  +---- blocking issues ----> ReviseReport or ReturnToExperiment
+  |
+  v
+[Checkpoint 3: Confirm Final Draft and Disclosure]
+  |
+  v
+BuildLaTeX
+  |
+  v
+ExportPDF
+  |
+  v
+ExportReproducibilityBundle
+  |
+  v
+COMPLETED
+
+13.2 Quality Gates
+
+Gate A:
+    Problem parsing confidence is acceptable.
+
+Gate B:
+    At least one viable strategy exists.
+
+Gate C:
+    Pilot experiment evidence exists for viable strategies.
+
+Gate D:
+    Formal code executes successfully.
+
+Gate E:
+    Baseline results exist.
+
+Gate F:
+    Robustness results exist or an explicit waiver exists.
+
+Gate G:
+    Experiment audit has no blocking issues.
+
+Gate H:
+    Quantitative claims are registered.
+
+Gate I:
+    Citations are verified or marked for human review.
+
+Gate J:
+    Judge panel has no blocking issues.
+
+Gate K:
+    Required human approvals are complete.
+
+======================================================================
+14. STATE MACHINE SPECIFICATION
+======================================================================
+
+14.1 Node Categories
+
+CONTROL_NODE
+AGENT_NODE
+SERVICE_NODE
+CHECKPOINT_NODE
+QUALITY_GATE_NODE
+EXPORT_NODE
+
+14.2 Transition Requirements
+
+Every transition MUST specify:
+    - source_state
+    - target_state
+    - condition
+    - maximum_retry_count
+    - rollback_target
+    - timeout
+    - required_artifacts
+    - emitted_events
+
+14.3 Example Transition Table
+
+From: PARSING
+To: WAITING_FOR_CHECKPOINT_1
+Condition:
+    problem_card exists AND parsing confidence >= configured threshold
+
+From: RUNNING_SANDBOX
+To: DEBUGGING_CODE
+Condition:
+    execution status == FAILED AND debug_retry_count < max_debug_retries
+
+From: RUNNING_SANDBOX
+To: RUNNING_BASELINES
+Condition:
+    execution status == SUCCEEDED
+
+From: AUDITING_EXPERIMENTS
+To: REGISTERING_EVIDENCE
+Condition:
+    blocking_issues is empty
+
+From: AUDITING_EXPERIMENTS
+To: GENERATING_CODE
+Condition:
+    blocking_issues contains implementation defects
+
+From: AUDITING_EXPERIMENTS
+To: GENERATING_STRATEGIES
+Condition:
+    blocking_issues contains model-design defects
+
+14.4 Loop Protection
+
+The workflow MUST track:
+    - model_revision_count
+    - code_debug_count
+    - report_revision_count
+    - citation_retry_count
+    - total_loop_count
+
+When configured limits are exceeded:
+    - Pause the workflow
+    - Create an escalation record
+    - Require human review
+
+======================================================================
+15. PROBLEM INGESTION AND PARSING
+======================================================================
+
+15.1 Input Bundle
+
+An input bundle MAY contain:
+    - problem.pdf
+    - rules.pdf
+    - data.csv
+    - data.xlsx
+    - images/
+    - notes.txt
+    - constraints.json
+
+15.2 Ingestion Manifest
+
+The ingestion service MUST produce:
+    - file_id
+    - original_name
+    - normalized_name
+    - content_hash
+    - mime_type
+    - size_bytes
+    - extracted_text_available
+    - extracted_tables_available
+    - ingestion_status
+    - source_reference
+
+15.3 Problem Card Schema
+
+The problem card MUST include:
+    - title
+    - background
+    - objective_summary
+    - subproblems
+    - output_requirements
+    - formatting_requirements
+    - variables
+    - constraints
+    - datasets
+    - ambiguities
+    - missing_information
+    - assumptions_to_confirm
+    - source_map
+
+15.4 Parsing Quality Rule
+
+Each extracted requirement SHOULD include:
+    - source file
+    - page number where available
+    - table name where available
+    - paragraph or line reference where available
+
+======================================================================
+16. DOMAIN ANALYSIS AND METHOD RETRIEVAL
+======================================================================
+
+16.1 Domain Analysis Output
+
+The domain analysis MUST classify:
+    - Application domain
+    - Modeling task family
+    - Data modality
+    - Time dependence
+    - Spatial dependence
+    - Optimization requirements
+    - Uncertainty requirements
+    - Validation requirements
+    - Interpretability requirements
+
+16.2 Method Library Taxonomy
+
+MODEL_LIBRARY/
+    prediction/
+        linear_regression
+        arima
+        exponential_smoothing
+        xgboost
+        random_forest
+        neural_network
+    optimization/
+        linear_programming
+        integer_programming
+        dynamic_programming
+        network_flow
+        genetic_algorithm
+        simulated_annealing
+        particle_swarm
+    evaluation/
+        ahp
+        topsis
+        entropy_weight
+        pca
+        fuzzy_evaluation
+    simulation/
+        monte_carlo
+        discrete_event
+        agent_based
+        system_dynamics
+    graph/
+        shortest_path
+        maximum_flow
+        centrality
+        community_detection
+    differential_equations/
+        ordinary_differential_equations
+        compartment_models
+        numerical_integration
+    clustering/
+        kmeans
+        hierarchical_clustering
+        dbscan
+    classification/
+        logistic_regression
+        decision_tree
+        svm
+        ensemble_methods
+
+16.3 Method Record
+
+Each method record MUST include:
+    method_id
+    method_name
+    category
+    summary
+    use_cases
+    applicability_conditions
+    data_requirements
+    assumptions
+    advantages
+    limitations
+    failure_modes
+    evaluation_metrics
+    pilot_template
+    implementation_template
+    visualization_templates
+    references
+
+======================================================================
+17. STRATEGY GENERATION, DEBATE, AND SELECTION
+======================================================================
+
+17.1 Strategy Generation
+
+The system SHOULD generate at least three strategies:
+    - Interpretability-first
+    - Performance-first
+    - Innovation-first
+
+Optional:
+    - Low-cost-first
+    - Robustness-first
+
+17.2 Strategy Isolation
+
+Strategy proposers SHOULD operate independently.
+
+Each proposer SHOULD NOT read the other proposers' draft strategies before
+submitting its own candidate.
+
+17.3 Structured Critique
+
+The critique stage MUST produce:
+    - Candidate strengths
+    - Candidate weaknesses
+    - Assumption risks
+    - Data risks
+    - Runtime risks
+    - Compliance risks
+    - Required pilot experiments
+    - Required fixes
+
+17.4 Selection Score Matrix
+
+Recommended default weights:
+    Problem fit:                 0.25
+    Data fit:                    0.15
+    Feasibility:                 0.15
+    Interpretability:            0.10
+    Experimental evidence:       0.15
+    Robustness potential:        0.10
+    Novelty:                     0.05
+    Runtime cost:                0.05
+
+Weights MUST be configurable.
+
+17.5 Merge Decision
+
+A merged strategy MUST specify:
+    - Base strategy
+    - Imported components
+    - Rationale
+    - New assumptions
+    - Updated pilot plan
+    - Updated risk assessment
+
+======================================================================
+18. PILOT EXPERIMENTS
+======================================================================
+
+18.1 Purpose
+
+Pilot experiments reduce the risk of selecting strategies that sound
+convincing but fail in practice.
+
+18.2 Pilot Scope
+
+A pilot experiment SHOULD:
+    - Run quickly
+    - Use a sample or reduced dataset when appropriate
+    - Produce at least one metric
+    - Produce one validation artifact
+    - Verify basic feasibility
+    - Estimate runtime
+    - Detect major implementation blockers
+
+18.3 Pilot Result Schema
+
+pilot_id
+strategy_id
+status
+runtime_seconds
+sample_size
+metrics
+warnings
+artifacts
+failure_reason
+recommendation
+
+18.4 Pilot Selection Rule
+
+The StrategyJudgeAgent MUST consider:
+    - Execution success
+    - Metric quality
+    - Runtime
+    - Complexity
+    - Interpretability
+    - Stability
+    - Resource requirements
+
+======================================================================
+19. DATA PROFILING AND PREPARATION
+======================================================================
+
+19.1 Data Profile Contents
+
+The Data Profiler MUST report:
+    - File count
+    - Row count
+    - Column count
+    - Column names
+    - Inferred types
+    - Missing counts
+    - Duplicate counts
+    - Candidate outliers
+    - Summary statistics
+    - Date columns
+    - Category cardinality
+    - Unit metadata
+    - Potential target leakage
+    - Potential identifier columns
+    - Potential data-quality warnings
+
+19.2 Data Cleaning Policy
+
+The system MUST distinguish:
+    - Detection
+    - Recommendation
+    - Execution
+
+The profiler MAY detect an outlier.
+The profiler MUST NOT automatically delete it unless:
+    - A configured policy allows it
+    - The change is logged
+    - The human checkpoint permits it when required
+
+19.3 Reproducibility
+
+Every transformed dataset MUST:
+    - Have a new artifact_id
+    - Reference its source dataset
+    - Store transformation steps
+    - Store code version
+    - Store a content hash
+
+======================================================================
+20. CODE GENERATION, SANDBOX EXECUTION, AND DEBUGGING
+======================================================================
+
+20.1 MVP Language Policy
+
+MVP MUST support:
+    - Python 3.12+
+
+MVP SHOULD include:
+    - numpy
+    - pandas
+    - scipy
+    - scikit-learn
+    - statsmodels
+    - networkx
+    - matplotlib
+    - pulp
+    - openpyxl
+
+Phase two MAY include:
+    - ortools
+    - pyomo
+    - xgboost
+    - lightgbm
+    - pytorch
+    - gurobi where licensing permits
+
+20.2 Code Structure
+
+Generated code SHOULD be split into:
+    - load_data.py
+    - preprocess.py
+    - model.py
+    - evaluate.py
+    - robustness.py
+    - visualize.py
+    - main.py
+
+20.3 Sandbox Mounts
+
+Recommended sandbox mounts:
+    /workspace/input      read-only
+    /workspace/src        read-write
+    /workspace/output     read-write
+    /workspace/logs       read-write
+
+20.4 Sandbox Restrictions
+
+The sandbox MUST:
+    - Run as non-root where possible
+    - Restrict CPU
+    - Restrict memory
+    - Restrict runtime
+    - Restrict disk
+    - Deny host secrets
+    - Deny host filesystem access
+    - Disable unrestricted outbound network access
+    - Capture stdout
+    - Capture stderr
+    - Capture exit code
+
+20.5 Debugging Policy
+
+The DebuggerAgent MAY:
+    - Fix import errors
+    - Fix path errors
+    - Fix type mismatches
+    - Fix syntax errors
+    - Fix API misuse
+    - Fix small logic errors
+
+The DebuggerAgent MUST NOT:
+    - Delete tests
+    - Disable quality gates
+    - Hard-code expected metrics
+    - Fabricate output files
+    - Bypass failed validation
+
+======================================================================
+21. BASELINES, ROBUSTNESS TESTING, AND EXPERIMENT AUDITING
+======================================================================
+
+21.1 Baseline Requirement
+
+Each final strategy MUST include at least one baseline unless:
+    - No meaningful baseline exists
+    - A human reviewer approves the waiver
+    - The waiver is recorded
+
+Examples:
+    Prediction:
+        Mean predictor
+        Moving average
+        Linear regression
+        ARIMA
+
+    Optimization:
+        Greedy heuristic
+        Random feasible solution
+        Simple rule-based allocation
+
+    Classification:
+        Majority class
+        Logistic regression
+        Decision tree
+
+21.2 Robustness Tests
+
+Recommended default tests:
+    - Parameter perturbation: +/-5%, +/-10%, +/-20%
+    - Repeated seeds
+    - Data subsampling
+    - Extreme-case scenarios
+    - Missing-data scenarios
+    - Noise injection
+    - Constraint stress tests
+    - Ablation experiments
+
+21.3 Experiment Auditor
+
+The audit MUST check:
+    - Code executed successfully
+    - Random seed recorded
+    - Input hashes recorded
+    - Dependencies recorded
+    - Train-test separation exists where required
+    - Data leakage checks passed
+    - Baseline exists or waiver exists
+    - Robustness tests exist or waiver exists
+    - Metrics align with objectives
+    - Figures are linked to scripts
+    - Tables are linked to scripts
+    - Claims are evidence-backed
+
+21.4 Blocking Issues
+
+Examples of blocking issues:
+    - Unexecuted code
+    - Missing train-test split for predictive modeling
+    - Data leakage
+    - Missing baseline without waiver
+    - Fabricated or manually typed metrics
+    - Missing input hashes
+    - Missing reproducibility metadata
+    - Unsupported report claims
+
+======================================================================
+22. EVIDENCE-CONSTRAINED REPORT GENERATION
+======================================================================
+
+22.1 Principle
+
+The report MUST be generated from verified artifacts and verified claims.
+
+22.2 Report Pipeline
+
+Verified Evidence
+    |
+    v
+PaperArchitectAgent
+    |
+    v
+report_outline.json
+    |
+    v
+PaperWriterAgent
+    |
+    v
+report.md + report.tex + report_claim_map.json
+
+22.3 Report Claim Map
+
+Each report statement containing a quantitative result SHOULD map to:
+    - section_id
+    - paragraph_id
+    - sentence_id
+    - claim_id
+    - evidence artifact_ids
+
+22.4 Report Sections
+
+Recommended generic structure:
+    1. Abstract
+    2. Problem Restatement
+    3. Problem Analysis
+    4. Assumptions
+    5. Symbols and Definitions
+    6. Data Description and Preprocessing
+    7. Model Construction
+    8. Solution Method
+    9. Experimental Results
+    10. Baseline Comparison
+    11. Sensitivity and Robustness Analysis
+    12. Model Evaluation
+    13. Limitations
+    14. Conclusions
+    15. References
+    16. AI-Use Disclosure if required
+    17. Appendix
+    18. Reproducibility Notes
+
+======================================================================
+23. CITATION VERIFICATION
+======================================================================
+
+23.1 Citation Policy
+
+The system MUST NOT invent citations.
+
+23.2 Citation Status Values
+
+VERIFIED
+PARTIALLY_VERIFIED
+UNRESOLVED
+REJECTED
+NEEDS_HUMAN_REVIEW
+
+23.3 Citation Record Fields
+
+citation_id
+title
+authors
+year
+venue
+doi
+url
+source_provider
+retrieved_at
+verification_status
+verification_notes
+used_in_claim_ids
+
+23.4 Report Export Policy
+
+A citation marked REJECTED MUST NOT be included.
+
+A citation marked UNRESOLVED SHOULD be excluded or clearly marked for human
+review.
+
+======================================================================
+24. COMPETITION COMPLIANCE ENGINE
+======================================================================
+
+24.1 Purpose
+
+Competition rules vary. The system MUST not hard-code one universal policy.
+
+24.2 Competition Profile
+
+A competition profile SHOULD define:
+    - profile_id
+    - competition_name
+    - rule_version
+    - operating_mode
+    - allowed_tools
+    - prohibited_tools
+    - required_checkpoints
+    - required_disclosure_fields
+    - restricted_export_actions
+    - notes
+    - source_reference
+
+24.3 Rule Enforcement
+
+The compliance engine MUST:
+    - Load the profile before execution
+    - Block disallowed tools
+    - Require configured checkpoints
+    - Record AI interactions where required
+    - Generate disclosure output
+    - Preserve the rule version
+
+24.4 Disclosure Record
+
+The disclosure record SHOULD include:
+    - Tool provider
+    - Model identifier
+    - Tool purpose
+    - Stage used
+    - Key interactions or summaries
+    - Human edits
+    - Human confirmations
+    - Export timestamp
+
+======================================================================
+25. HUMAN-IN-THE-LOOP CHECKPOINTS
+======================================================================
+
+25.1 Checkpoint 1: Problem Understanding
+
+User reviews:
+    - Parsed subproblems
+    - Objectives
+    - Constraints
+    - Data interpretation
+    - Ambiguities
+    - Competition mode
+
+Allowed actions:
+    - Approve
+    - Edit
+    - Reject and reparse
+    - Upload more files
+    - Cancel
+
+25.2 Checkpoint 2: Strategy Selection
+
+User reviews:
+    - Candidate strategies
+    - Skeptic report
+    - Pilot experiment results
+    - Judge score matrix
+    - Selected or merged strategy
+    - Risks
+
+Allowed actions:
+    - Approve
+    - Choose another strategy
+    - Merge manually
+    - Request revision
+    - Cancel
+
+25.3 Checkpoint 3: Final Draft
+
+User reviews:
+    - Report draft
+    - Key claims
+    - Figures
+    - Tables
+    - Citations
+    - Judge report
+    - Disclosure record
+    - Reproducibility package summary
+
+Allowed actions:
+    - Approve export
+    - Edit report
+    - Request revision
+    - Return to experiment stage
+    - Cancel
+
+25.4 Audit Requirement
+
+Every checkpoint decision MUST record:
+    - checkpoint_id
+    - run_id
+    - user_id
+    - action
+    - timestamp
+    - comments
+    - edited_fields
+    - previous_state_version
+    - new_state_version
+
+======================================================================
+26. API DESIGN
+======================================================================
+
+26.1 API Principles
+
+The API SHOULD:
+    - Use JSON
+    - Use explicit schemas
+    - Use stable identifiers
+    - Use idempotency keys for mutating operations
+    - Return structured errors
+    - Avoid returning raw secrets
+    - Separate synchronous and asynchronous actions
+
+26.2 Core Endpoints
+
+POST /api/v1/runs
+    Create a run.
+
+POST /api/v1/runs/{run_id}/files
+    Upload input files.
+
+POST /api/v1/runs/{run_id}/start
+    Start workflow execution.
+
+GET /api/v1/runs/{run_id}
+    Get run summary.
+
+GET /api/v1/runs/{run_id}/state
+    Get current blackboard snapshot.
+
+GET /api/v1/runs/{run_id}/events
+    Get audit events.
+
+GET /api/v1/runs/{run_id}/artifacts
+    List artifacts.
+
+GET /api/v1/runs/{run_id}/checkpoints
+    List checkpoints.
+
+POST /api/v1/runs/{run_id}/checkpoints/{checkpoint_id}/resolve
+    Resolve a checkpoint.
+
+POST /api/v1/runs/{run_id}/cancel
+    Cancel a run.
+
+GET /api/v1/runs/{run_id}/exports
+    List exports.
+
+POST /api/v1/runs/{run_id}/exports
+    Request export.
+
+26.3 Optional Endpoints
+
+GET /api/v1/methods
+GET /api/v1/methods/{method_id}
+GET /api/v1/profiles
+GET /api/v1/profiles/{profile_id}
+GET /api/v1/benchmarks
+POST /api/v1/benchmarks/run
+
+======================================================================
+27. DATABASE DESIGN
+======================================================================
+
+27.1 Core Tables
+
+users
+runs
+run_state_versions
+audit_events
+artifacts
+experiments
+experiment_metrics
+evidence_claims
+claim_artifact_links
+citations
+claim_citation_links
+checkpoints
+human_feedback
+competition_profiles
+prompt_versions
+model_calls
+budget_records
+exports
+
+27.2 runs
+
+id
+user_id
+mode
+status
+competition_profile_id
+created_at
+updated_at
+started_at
+completed_at
+failure_reason
+current_state_version
+total_cost_estimate
+total_runtime_seconds
+
+27.3 run_state_versions
+
+id
+run_id
+version_number
+state_json
+created_at
+created_by
+change_reason
+
+27.4 audit_events
+
+id
+run_id
+event_type
+actor_type
+actor_id
+timestamp
+payload_json
+
+27.5 artifacts
+
+id
+run_id
+artifact_type
+filename
+storage_uri
+content_hash
+mime_type
+size_bytes
+created_at
+created_by
+metadata_json
+
+27.6 experiments
+
+id
+run_id
+strategy_id
+experiment_type
+status
+seed
+code_artifact_id
+input_manifest_hash
+started_at
+completed_at
+runtime_seconds
+sandbox_backend
+metadata_json
+
+27.7 evidence_claims
+
+id
+run_id
+claim_type
+statement
+verification_status
+created_by
+verified_by
+created_at
+metadata_json
+
+27.8 model_calls
+
+id
+run_id
+agent_name
+model_provider
+model_identifier
+prompt_version
+input_tokens
+output_tokens
+latency_ms
+estimated_cost
+created_at
+status
+
+======================================================================
+28. STORAGE LAYOUT
+======================================================================
+
+28.1 Run Directory
+
+runs/{run_id}/
+    input/
+    ingestion/
+    problem/
+    methods/
+    strategies/
+    pilots/
+    data/
+    code/
+    notebooks/
+    experiments/
+    figures/
+    tables/
+    metrics/
+    evidence/
+    citations/
+    reports/
+    disclosures/
+    logs/
+    exports/
+    manifests/
+
+28.2 Required Manifest Files
+
+runs/{run_id}/manifests/input_manifest.json
+runs/{run_id}/manifests/artifact_manifest.json
+runs/{run_id}/manifests/reproducibility_manifest.json
+runs/{run_id}/manifests/audit_manifest.json
+
+28.3 Export Bundle
+
+exports/modelforge_run_{run_id}.zip
+    report.pdf
+    report.tex
+    report.md
+    references.bib
+    figures/
+    tables/
+    code/
+    notebooks/
+    metrics/
+    evidence/
+    citations/
+    logs/
+    input_manifest.json
+    reproducibility_manifest.json
+    ai_disclosure.md if required
+
+======================================================================
+29. FRONTEND PRODUCT DESIGN
+======================================================================
+
+29.1 Core Pages
+
+Page 1:
+    New Run
+
+Page 2:
+    Run Dashboard
+
+Page 3:
+    Problem Understanding Review
+
+Page 4:
+    Strategy Comparison
+
+Page 5:
+    Experiment Console
+
+Page 6:
+    Evidence Explorer
+
+Page 7:
+    Report Review
+
+Page 8:
+    Export Center
+
+Page 9:
+    Benchmark Dashboard
+
+29.2 Run Dashboard
+
+The dashboard SHOULD show:
+    - Current workflow node
+    - Completed nodes
+    - Pending nodes
+    - Failed nodes
+    - Active sandbox jobs
+    - Pending checkpoints
+    - Token usage
+    - Cost estimate
+    - Runtime
+    - Artifact count
+    - Blocking issues
+
+29.3 Strategy Comparison Page
+
+The page SHOULD show:
+    - Candidate strategy cards
+    - Assumptions
+    - Method stacks
+    - Risk summary
+    - Pilot metrics
+    - Runtime
+    - Judge scores
+    - Skeptic findings
+    - User selection controls
+
+29.4 Evidence Explorer
+
+The page SHOULD allow users to:
+    - Search claims
+    - Open evidence
+    - Open source code
+    - Open metrics files
+    - Open figures
+    - Open experiment logs
+    - Inspect provenance
+
+29.5 Technology Recommendation
+
+Frontend:
+    - Next.js
+    - React
+    - TypeScript
+    - Tailwind CSS
+    - shadcn/ui
+    - React Flow
+    - Monaco Editor
+    - TanStack Query
+
+======================================================================
+30. SECURITY MODEL
+======================================================================
+
+30.1 Threat Model
+
+Potential threats:
+    - Malicious uploaded files
+    - Malicious generated code
+    - Sandbox escape attempts
+    - Secret leakage
+    - Unrestricted network access
+    - Excessive resource consumption
+    - Prompt injection in documents
+    - Unsafe file paths
+    - Oversized input bundles
+    - Dependency abuse
+
+30.2 Required Controls
+
+The system MUST:
+    - Sanitize filenames
+    - Validate MIME types
+    - Limit file sizes
+    - Store uploads outside executable paths
+    - Use non-root sandbox users
+    - Deny host secret mounts
+    - Restrict outbound network access
+    - Restrict CPU
+    - Restrict memory
+    - Restrict runtime
+    - Restrict disk usage
+    - Capture logs
+    - Preserve audit records
+    - Validate output paths
+    - Reject path traversal
+    - Separate system prompts from document content
+
+30.3 Prompt Injection Defense
+
+Document content MUST be treated as untrusted data.
+
+Agents MUST NOT follow instructions embedded in problem documents unless the
+instructions are part of the recognized problem statement or competition
+rules.
+
+The parser SHOULD separate:
+    - User instructions
+    - Competition rules
+    - Problem content
+    - External document content
+    - Tool outputs
+
+======================================================================
+31. OBSERVABILITY AND AUDITABILITY
+======================================================================
+
+31.1 Events
+
+Recommended event types:
+    RUN_CREATED
+    FILE_UPLOADED
+    INGESTION_COMPLETED
+    PROBLEM_PARSED
+    DOMAIN_ANALYZED
+    METHODS_RETRIEVED
+    STRATEGY_GENERATED
+    STRATEGY_CRITIQUED
+    PILOT_STARTED
+    PILOT_COMPLETED
+    STRATEGY_SELECTED
+    CHECKPOINT_CREATED
+    CHECKPOINT_RESOLVED
+    CODE_GENERATED
+    SANDBOX_STARTED
+    SANDBOX_COMPLETED
+    DEBUG_PATCH_APPLIED
+    BASELINE_COMPLETED
+    ROBUSTNESS_COMPLETED
+    AUDIT_COMPLETED
+    EVIDENCE_REGISTERED
+    REPORT_OUTLINE_CREATED
+    REPORT_DRAFTED
+    CITATIONS_VERIFIED
+    JUDGE_PANEL_COMPLETED
+    EXPORT_CREATED
+    RUN_COMPLETED
+    RUN_FAILED
+    RUN_CANCELLED
+
+31.2 Trace Fields
+
+Each trace SHOULD include:
+    - trace_id
+    - run_id
+    - node_name
+    - actor
+    - start_time
+    - end_time
+    - duration_ms
+    - status
+    - input_artifact_ids
+    - output_artifact_ids
+    - model_call_ids
+    - error_summary
+
+31.3 Auditability Standard
+
+A reviewer SHOULD be able to answer:
+    - Who made this decision?
+    - Which input files were used?
+    - Which code produced this figure?
+    - Which experiment produced this metric?
+    - Which metric supports this report claim?
+    - Which model generated this strategy?
+    - Which human approved this checkpoint?
+    - Which competition profile was active?
+    - What was the estimated cost?
+
+======================================================================
+32. RELIABILITY AND FAILURE RECOVERY
+======================================================================
+
+32.1 Failure Types
+
+INPUT_FAILURE
+PARSING_FAILURE
+MODEL_PROVIDER_FAILURE
+SANDBOX_FAILURE
+DEPENDENCY_FAILURE
+CODE_FAILURE
+QUALITY_GATE_FAILURE
+CITATION_FAILURE
+EXPORT_FAILURE
+BUDGET_FAILURE
+POLICY_FAILURE
+USER_CANCELLED
+
+32.2 Retry Policy
+
+Recommended defaults:
+    - Model-provider transient retry: 2
+    - Parser retry: 1
+    - Code debug retry: 3
+    - Citation metadata retry: 2
+    - LaTeX compilation retry: 2
+    - Sandbox infrastructure retry: 1
+
+32.3 Escalation Policy
+
+After retry exhaustion:
+    - Persist state
+    - Mark the stage as blocked
+    - Create a human-review checkpoint
+    - Provide error summary
+    - Provide logs
+    - Provide recommended next actions
+
+32.4 Resume Policy
+
+A resumed run MUST:
+    - Load the latest validated state version
+    - Verify artifact availability
+    - Verify profile version
+    - Recompute pending transitions
+    - Preserve the prior audit history
+
+======================================================================
+33. PERFORMANCE AND COST CONTROL
+======================================================================
+
+33.1 Cost Drivers
+
+Major cost drivers:
+    - Number of proposer instances
+    - Number of debate rounds
+    - Prompt size
+    - Dataset-summary size
+    - Code-debug loops
+    - Citation retrieval
+    - Report length
+    - Sandbox runtime
+    - Number of robustness experiments
+
+33.2 Optimization Techniques
+
+The system SHOULD:
+    - Use cheaper models for parsing
+    - Use stronger models for strategy judgment
+    - Use coding-focused models for code generation
+    - Compress state before LLM calls
+    - Reference artifacts instead of embedding full files
+    - Cache method retrieval
+    - Cache citations
+    - Limit debate rounds
+    - Stop failed strategies early
+    - Use pilot experiments before full experiments
+    - Batch robustness runs where feasible
+
+33.3 Budget Profiles
+
+Recommended budget profiles:
+    - demo
+    - standard
+    - high_quality
+    - research
+
+Each profile SHOULD configure:
+    - model routing
+    - proposer count
+    - retry counts
+    - sandbox timeout
+    - robustness variants
+    - report length
+    - citation depth
+
+======================================================================
+34. DEPLOYMENT ARCHITECTURE
+======================================================================
+
+34.1 Local MVP
+
+Components:
+    - FastAPI
+    - PostgreSQL or SQLite for initial prototype
+    - Redis optional
+    - Docker sandbox
+    - Local filesystem
+    - CLI
+    - Minimal web interface optional
+
+34.2 Recommended Production-Like Demo
+
+Components:
+    - Next.js frontend
+    - FastAPI backend
+    - PostgreSQL
+    - Redis
+    - Worker queue
+    - Docker sandbox workers
+    - MinIO or S3-compatible object storage
+    - Reverse proxy
+    - Centralized logs
+
+34.3 Deployment Diagram
+
+Browser
+  |
+  v
+Next.js Frontend
+  |
+  v
+FastAPI API
+  |
+  +--> PostgreSQL
+  |
+  +--> Redis Queue
+  |
+  +--> Object Storage
+  |
+  +--> Worker Pool
+          |
+          +--> Agent Workers
+          |
+          +--> Sandbox Workers
+          |
+          +--> Export Workers
+
+34.4 Deployment Separation
+
+Sandbox workers SHOULD be isolated from:
+    - API credentials
+    - Database credentials beyond minimum required
+    - Object-storage write permissions outside the run scope
+    - Host filesystem
+    - Internal service network where possible
+
+======================================================================
+35. REPOSITORY STRUCTURE
+======================================================================
+
+modelforge-swarm/
+    README.md
+    LICENSE
+    pyproject.toml
+    .env.example
+    docker-compose.yml
+
+    apps/
+        api/
+            main.py
+            dependencies.py
+            routers/
+            schemas/
+        web/
+            app/
+            components/
+            lib/
+            types/
+
+    src/
+        graph/
+            workflow.py
+            state.py
+            transitions.py
+            checkpoints.py
+            quality_gates.py
+
+        agents/
+            base.py
+            problem_parser.py
+            domain_analyst.py
+            method_retriever.py
+            strategy_proposer.py
+            skeptic.py
+            strategy_judge.py
+            code_author.py
+            debugger.py
+            paper_architect.py
+            paper_writer.py
+
+        services/
+            ingestion/
+            profiling/
+            sandbox/
+            experiments/
+            robustness/
+            evidence/
+            citations/
+            compliance/
+            exporters/
+            observability/
+            budgets/
+
+        storage/
+            repositories/
+            models/
+            object_store.py
+
+        providers/
+            llm/
+            sandbox/
+            retrieval/
+
+        prompts/
+            registry.py
+            templates/
+            versions/
+
+        common/
+            ids.py
+            hashing.py
+            errors.py
+            logging.py
+            time.py
+
+    model_library/
+        prediction/
+        optimization/
+        evaluation/
+        simulation/
+        graph/
+        differential_equations/
+        clustering/
+        classification/
+
+    competition_profiles/
+        practice.yaml
+        generic_contest.yaml
+        cumcm.yaml
+        mcm_icm.yaml
+        apmcm.yaml
+
+    templates/
+        generic/
+        cumcm/
+        mcm_icm/
+        apmcm/
+
+    benchmark/
+        problems/
+        datasets/
+        rubrics/
+        baselines/
+        reports/
+        scripts/
+
+    docker/
+        sandbox/
+            Dockerfile
+            entrypoint.sh
+            requirements.txt
+
+    tests/
+        unit/
+        integration/
+        end_to_end/
+        fixtures/
+
+    examples/
+        simple_prediction/
+        allocation_optimization/
+        network_analysis/
+
+    docs/
+        architecture/
+        api/
+        deployment/
+        contributing/
+
+    runs/
+        .gitkeep
+
+======================================================================
+36. CONFIGURATION MODEL
+======================================================================
+
+36.1 Configuration Layers
+
+Configuration priority:
+    1. Hard-coded safe defaults
+    2. Project configuration file
+    3. Competition profile
+    4. Run-level configuration
+    5. Explicit user-approved overrides
+
+36.2 Main Configuration Groups
+
+app
+database
+queue
+storage
+sandbox
+models
+agents
+budgets
+retrieval
+citations
+compliance
+exports
+observability
+
+36.3 Sensitive Configuration
+
+Secrets MUST be stored outside version control.
+
+Examples:
+    OPENAI_API_KEY
+    ANTHROPIC_API_KEY
+    GEMINI_API_KEY
+    DATABASE_URL
+    REDIS_URL
+    OBJECT_STORAGE_SECRET
+
+======================================================================
+37. PROMPT CONTRACT DESIGN
+======================================================================
+
+37.1 Prompt Structure
+
+Each reasoning agent prompt SHOULD contain:
+    - Role definition
+    - Task definition
+    - Input schema
+    - Output schema
+    - Allowed evidence
+    - Forbidden behavior
+    - Quality checklist
+    - Failure behavior
+    - Version identifier
+
+37.2 Output Validation
+
+All agent outputs MUST be parsed into typed schemas.
+
+Invalid output SHOULD:
+    - Trigger a repair prompt once
+    - Fall back to a safe failure state after retry exhaustion
+    - Preserve raw output for debugging
+
+37.3 Prompt Registry
+
+Each prompt MUST have:
+    - prompt_id
+    - agent_name
+    - semantic_version
+    - template
+    - schema_version
+    - created_at
+    - changelog
+
+37.4 Example Agent Contract
+
+Agent:
+    StrategyJudgeAgent
+
+Allowed:
+    - Compare candidates
+    - Use pilot evidence
+    - Select
+    - Merge
+    - Request revision
+
+Forbidden:
+    - Invent pilot metrics
+    - Ignore failed experiments
+    - Hide uncertainty
+    - Bypass compliance restrictions
+
+Required output:
+    JSON matching StrategyDecision schema
+
+======================================================================
+38. TESTING STRATEGY
+======================================================================
+
+38.1 Test Layers
+
+Unit Tests:
+    - Schema validation
+    - Hashing
+    - Artifact registry
+    - Evidence registry
+    - Budget manager
+    - Compliance rules
+    - Transition logic
+
+Integration Tests:
+    - Ingestion to problem card
+    - Strategy generation to pilot execution
+    - Sandbox to artifact collection
+    - Experiment audit to evidence registration
+    - Writer to LaTeX export
+
+End-to-End Tests:
+    - Small prediction task
+    - Small optimization task
+    - Small graph-analysis task
+
+Security Tests:
+    - Path traversal
+    - Oversized uploads
+    - Sandbox timeout
+    - Network denial
+    - Secret leakage prevention
+    - Malicious document instructions
+
+38.2 Golden Fixtures
+
+The repository SHOULD include deterministic fixtures with known outputs:
+    - tiny_timeseries.csv
+    - tiny_network.csv
+    - tiny_allocation.csv
+    - sample_problem.txt
+    - sample_profile.yaml
+
+38.3 CI Pipeline
+
+Recommended CI steps:
+    1. Lint
+    2. Type check
+    3. Unit tests
+    4. Integration tests
+    5. Security tests
+    6. Build sandbox image
+    7. Build API image
+    8. Build frontend
+    9. Generate coverage report
+
+======================================================================
+39. BENCHMARK AND EVALUATION FRAMEWORK
+======================================================================
+
+39.1 Benchmark Purpose
+
+The benchmark demonstrates that the project is more than a visual demo.
+
+39.2 Recommended Benchmark Coverage
+
+Prepare 15 to 30 public modeling problems covering:
+    - Prediction
+    - Optimization
+    - Evaluation
+    - Classification
+    - Clustering
+    - Graph theory
+    - Differential equations
+    - Simulation
+    - Multi-objective decision making
+
+39.3 Core Metrics
+
+Problem Decomposition Score
+Model Appropriateness Score
+Strategy Diversity Score
+Pilot Execution Rate
+Formal Code Execution Rate
+Debug Recovery Rate
+Baseline Coverage
+Robustness Coverage
+Evidence Coverage
+Citation Validity Rate
+Report Completeness
+Reproducibility Rate
+Human Review Score
+Runtime
+Estimated Cost
+
+39.4 Ablation Experiments
+
+Recommended ablations:
+    - With vs without parallel proposers
+    - With vs without SkepticAgent
+    - With vs without pilot experiments
+    - With vs without baseline gate
+    - With vs without robustness gate
+    - With vs without evidence registry
+    - Single model vs routed models
+    - One debate round vs two debate rounds
+
+39.5 Benchmark Output
+
+benchmark/reports/{benchmark_run_id}/
+    summary.json
+    metrics.csv
+    charts/
+    run_index.json
+    ablation_results.csv
+    human_review_notes.md
+
+======================================================================
+40. DEVELOPMENT ROADMAP
+======================================================================
+
+40.1 Phase 0: Foundation
+Estimated duration:
+    2 to 4 days
+
+Deliverables:
+    - Repository initialization
+    - Python project configuration
+    - Typed state schema
+    - Artifact registry
+    - Run directory creation
+    - Minimal CLI
+    - Docker sandbox hello-world execution
+
+40.2 Phase 1: Minimal End-to-End MVP
+Estimated duration:
+    7 to 14 days
+
+Deliverables:
+    - Text and PDF ingestion
+    - ProblemParserAgent
+    - DomainAnalystAgent
+    - MethodRetrieverAgent
+    - Three StrategyProposerAgent instances
+    - SkepticAgent
+    - StrategyJudgeAgent
+    - Python CodeAuthorAgent
+    - Docker Sandbox Runner
+    - Markdown report draft
+    - Local run artifacts
+
+Acceptance:
+    A small public problem can move from input to executable experiment and
+    markdown report draft.
+
+40.3 Phase 2: Experiment Quality
+Estimated duration:
+    7 to 14 days
+
+Deliverables:
+    - Data Profiler
+    - DebuggerAgent
+    - Baseline Runner
+    - Robustness Runner
+    - Experiment Auditor
+    - Evidence Registry
+    - Reproducibility manifest
+    - Human checkpoints
+
+Acceptance:
+    A run cannot reach report export without successful code execution,
+    baseline coverage, robustness coverage, and evidence registration.
+
+40.4 Phase 3: Productized Demo
+Estimated duration:
+    14 to 28 days
+
+Deliverables:
+    - FastAPI
+    - PostgreSQL
+    - Next.js web console
+    - React Flow workflow visualization
+    - Evidence Explorer
+    - Report review page
+    - LaTeX Builder
+    - PDF export
+    - ZIP export
+    - Cost dashboard
+
+Acceptance:
+    A user can upload files, monitor progress, approve checkpoints, inspect
+    evidence, and download a reproducibility bundle.
+
+40.5 Phase 4: Research and Benchmarking
+Estimated duration:
+    Ongoing
+
+Deliverables:
+    - Benchmark suite
+    - Model routing experiments
+    - Ablation scripts
+    - Human review rubric
+    - Public benchmark report
+    - Research-mode trace exports
+
+======================================================================
+41. ACCEPTANCE CRITERIA
+======================================================================
+
+41.1 MVP Acceptance Criteria
+
+The MVP is accepted when:
+    1. A user can create a run.
+    2. A user can upload a text or PDF problem.
+    3. The parser produces a structured problem card.
+    4. The system generates at least three candidate strategies.
+    5. The system critiques the candidates.
+    6. The system selects one strategy.
+    7. The system generates executable Python code.
+    8. Docker executes the code.
+    9. Logs are captured.
+    10. At least one result artifact is registered.
+    11. A markdown report draft is generated.
+    12. The run directory contains a manifest.
+
+41.2 Portfolio-Grade Acceptance Criteria
+
+The portfolio-grade release is accepted when:
+    1. Human checkpoints work.
+    2. Pilot experiments work.
+    3. Automatic debugging works with bounded retries.
+    4. Baseline comparisons work.
+    5. Robustness tests work.
+    6. Evidence claims link to artifacts.
+    7. Report claims map to evidence.
+    8. LaTeX export works.
+    9. PDF export works.
+    10. ZIP reproducibility export works.
+    11. Web console works.
+    12. Audit events are visible.
+    13. Cost and runtime summaries are visible.
+    14. Three example problems are documented.
+
+41.3 Research-Grade Acceptance Criteria
+
+The research-grade release is accepted when:
+    1. Benchmark suite contains at least 15 public problems.
+    2. Evaluation metrics are computed automatically.
+    3. Ablation studies can be reproduced.
+    4. Model-provider comparisons are supported.
+    5. Prompt versions are tracked.
+    6. Competition profiles are versioned.
+    7. Citation verification is supported.
+    8. Security tests pass.
+    9. Deployment documentation is complete.
+    10. Public benchmark report is generated.
+
+======================================================================
+42. FUTURE EXTENSIONS
+======================================================================
+
+42.1 Optimization Specialist
+
+Add a solver-agnostic intermediate representation:
+
+optimization_ir.json
+    variables
+    objective
+    constraints
+    parameter_values
+    solver_preferences
+    validation_rules
+
+Generate adapters for:
+    - PuLP
+    - Pyomo
+    - OR-Tools
+    - Gurobi
+    - CPLEX
+
+42.2 Time-Series Specialist
+
+Add:
+    - Forecast horizon checks
+    - Backtesting
+    - Rolling validation
+    - Seasonality detection
+    - ARIMA baseline
+    - Tree-based models
+    - Optional neural models
+
+42.3 Graph Specialist
+
+Add:
+    - Graph schema detection
+    - Centrality
+    - Shortest path
+    - Maximum flow
+    - Community detection
+    - Diffusion simulation
+
+42.4 Differential Equation Specialist
+
+Add:
+    - ODE formulation
+    - Parameter fitting
+    - Numerical solvers
+    - Stability checks
+    - Sensitivity analysis
+
+42.5 Collaboration Mode
+
+Add:
+    - Team workspaces
+    - Role-based access
+    - Shared checkpoint review
+    - Comment threads
+    - Versioned human edits
+
+======================================================================
+APPENDIX A. CORE DATA SCHEMAS
+======================================================================
+
+A.1 Simplified ModelingState
+
+class ModelingState(TypedDict):
+    run_id: str
+    mode: Literal["practice", "contest_compliant", "research"]
+    status: str
+
+    input_manifest: dict
+    competition_profile: dict
+
+    problem_card: dict
+    domain_analysis: dict
+    retrieved_methods: list[dict]
+
+    strategy_candidates: list[dict]
+    skeptic_report: dict
+    pilot_experiments: list[dict]
+    selected_strategy: dict | None
+
+    data_profile: dict
+    code_artifacts: list[dict]
+    experiment_records: list[dict]
+    baseline_results: list[dict]
+    robustness_results: list[dict]
+
+    evidence_claims: list[dict]
+    citations: list[dict]
+
+    report_outline: dict | None
+    report_artifacts: list[dict]
+
+    judge_reports: list[dict]
+    blocking_issues: list[str]
+
+    pending_checkpoint: dict | None
+    human_feedback: list[dict]
+
+    budget_state: dict
+    audit_events: list[dict]
+    export_state: dict
+    failure_state: dict | None
+
+A.2 Simplified Strategy Candidate
+
+{
+  "strategy_id": "strategy_interpretability_001",
+  "name": "Interpretable Forecasting and Allocation Pipeline",
+  "design_goal": "interpretability_first",
+  "subproblem_mapping": [],
+  "method_stack": [],
+  "assumptions": [],
+  "data_requirements": [],
+  "preprocessing_plan": [],
+  "pilot_plan": [],
+  "baseline_plan": [],
+  "robustness_plan": [],
+  "visualization_plan": [],
+  "estimated_runtime_seconds": 0,
+  "implementation_risks": [],
+  "limitations": [],
+  "fallback_plan": []
+}
+
+A.3 Simplified Evidence Claim
+
+{
+  "claim_id": "claim_027",
+  "claim_type": "MODEL_COMPARISON",
+  "statement": "The selected model reduced RMSE from 0.194 to 0.151.",
+  "experiment_id": "experiment_104",
+  "artifact_ids": [
+    "artifact_metrics_model_comparison",
+    "artifact_figure_rmse_comparison"
+  ],
+  "metric_name": "RMSE",
+  "metric_value": {
+    "baseline": 0.194,
+    "selected_model": 0.151
+  },
+  "verification_status": "VERIFIED"
+}
+
+======================================================================
+APPENDIX B. EXAMPLE WORKFLOW PSEUDOCODE
+======================================================================
+
+from langgraph.graph import StateGraph, END
+
+graph = StateGraph(ModelingState)
+
+graph.add_node("ingest", ingest_node)
+graph.add_node("parse_problem", parse_problem_node)
+graph.add_node("analyze_domain", analyze_domain_node)
+graph.add_node("checkpoint_1", checkpoint_1_node)
+graph.add_node("retrieve_methods", retrieve_methods_node)
+graph.add_node("generate_strategies", generate_strategies_node)
+graph.add_node("skeptic_review", skeptic_review_node)
+graph.add_node("run_pilots", run_pilots_node)
+graph.add_node("select_strategy", select_strategy_node)
+graph.add_node("checkpoint_2", checkpoint_2_node)
+graph.add_node("profile_data", profile_data_node)
+graph.add_node("generate_code", generate_code_node)
+graph.add_node("run_sandbox", run_sandbox_node)
+graph.add_node("debug_code", debug_code_node)
+graph.add_node("run_baselines", run_baselines_node)
+graph.add_node("run_robustness", run_robustness_node)
+graph.add_node("audit_experiments", audit_experiments_node)
+graph.add_node("register_evidence", register_evidence_node)
+graph.add_node("architect_report", architect_report_node)
+graph.add_node("write_report", write_report_node)
+graph.add_node("verify_citations", verify_citations_node)
+graph.add_node("judge_panel", judge_panel_node)
+graph.add_node("checkpoint_3", checkpoint_3_node)
+graph.add_node("export", export_node)
+
+graph.set_entry_point("ingest")
+
+graph.add_edge("ingest", "parse_problem")
+graph.add_edge("parse_problem", "analyze_domain")
+graph.add_edge("analyze_domain", "checkpoint_1")
+graph.add_edge("checkpoint_1", "retrieve_methods")
+graph.add_edge("retrieve_methods", "generate_strategies")
+graph.add_edge("generate_strategies", "skeptic_review")
+graph.add_edge("skeptic_review", "run_pilots")
+graph.add_edge("run_pilots", "select_strategy")
+graph.add_edge("select_strategy", "checkpoint_2")
+graph.add_edge("checkpoint_2", "profile_data")
+graph.add_edge("profile_data", "generate_code")
+graph.add_edge("generate_code", "run_sandbox")
+
+graph.add_conditional_edges(
+    "run_sandbox",
+    route_after_execution,
+    {
+        "success": "run_baselines",
+        "debug": "debug_code",
+        "escalate": "checkpoint_2"
+    }
+)
+
+graph.add_edge("debug_code", "run_sandbox")
+graph.add_edge("run_baselines", "run_robustness")
+graph.add_edge("run_robustness", "audit_experiments")
+
+graph.add_conditional_edges(
+    "audit_experiments",
+    route_after_audit,
+    {
+        "pass": "register_evidence",
+        "revise_code": "generate_code",
+        "revise_strategy": "generate_strategies",
+        "escalate": "checkpoint_2"
+    }
+)
+
+graph.add_edge("register_evidence", "architect_report")
+graph.add_edge("architect_report", "write_report")
+graph.add_edge("write_report", "verify_citations")
+graph.add_edge("verify_citations", "judge_panel")
+
+graph.add_conditional_edges(
+    "judge_panel",
+    route_after_judging,
+    {
+        "pass": "checkpoint_3",
+        "revise_report": "write_report",
+        "return_to_experiment": "generate_code",
+        "escalate": "checkpoint_3"
+    }
+)
+
+graph.add_edge("checkpoint_3", "export")
+graph.add_edge("export", END)
+
+======================================================================
+APPENDIX C. EXAMPLE COMPETITION PROFILE
+======================================================================
+
+profile_id: generic_contest_compliant_v1
+competition_name: Generic Mathematical Modeling Competition
+rule_version: "1.0"
+mode: contest_compliant
+
+allowed_capabilities:
+  problem_parsing: true
+  method_retrieval: true
+  strategy_suggestions: true
+  code_generation: true
+  sandbox_execution: true
+  report_drafting: true
+  citation_verification: true
+  latex_export: true
+
+required_checkpoints:
+  - problem_understanding
+  - strategy_selection
+  - final_report
+
+required_disclosure_fields:
+  - provider
+  - model_identifier
+  - purpose
+  - stage
+  - human_edits
+  - human_confirmation
+
+restricted_actions:
+  - hidden_ai_usage
+  - fabricated_metrics
+  - export_without_final_approval
+
+======================================================================
+APPENDIX D. EXAMPLE EVIDENCE RECORD
+======================================================================
+
+{
+  "claim_id": "claim_027",
+  "run_id": "run_20260602_001",
+  "claim_type": "MODEL_COMPARISON",
+  "statement": "The selected model reduced RMSE from 0.194 to 0.151.",
+  "experiment_id": "experiment_104",
+  "metric_name": "RMSE",
+  "metric_value": {
+    "baseline": 0.194,
+    "selected_model": 0.151
+  },
+  "artifact_ids": [
+    "artifact_metrics_model_comparison_csv",
+    "artifact_figure_rmse_comparison_png",
+    "artifact_notebook_forecasting_ipynb"
+  ],
+  "verification_status": "VERIFIED",
+  "verified_by": "experiment_auditor",
+  "created_at": "2026-06-02T00:00:00Z"
+}
+
+======================================================================
+APPENDIX E. EXAMPLE API PAYLOADS
+======================================================================
+
+E.1 Create Run
+
+POST /api/v1/runs
+
+{
+  "mode": "practice",
+  "competition_profile_id": "practice_v1",
+  "budget_profile": "standard"
+}
+
+Response:
+
+{
+  "run_id": "run_20260602_001",
+  "status": "CREATED"
+}
+
+E.2 Resolve Checkpoint
+
+POST /api/v1/runs/run_20260602_001/checkpoints/checkpoint_2/resolve
+
+{
+  "action": "APPROVE_WITH_EDITS",
+  "comments": "Use Strategy B as the base and add the sensitivity test from Strategy A.",
+  "edits": {
+    "selected_strategy_id": "strategy_b",
+    "merge_components": [
+      "strategy_a.robustness_plan.parameter_sweep"
+    ]
+  }
+}
+
+======================================================================
+APPENDIX F. EXAMPLE RUN DIRECTORY
+======================================================================
+
+runs/run_20260602_001/
+    input/
+        problem.pdf
+        data.csv
+        rules.pdf
+
+    problem/
+        problem_card.json
+        domain_analysis.json
+
+    methods/
+        retrieved_methods.json
+
+    strategies/
+        strategy_interpretability_001.json
+        strategy_performance_001.json
+        strategy_innovation_001.json
+        skeptic_report.json
+        selected_strategy.json
+
+    pilots/
+        pilot_interpretability/
+        pilot_performance/
+        pilot_innovation/
+
+    data/
+        profile.json
+        processed_data.csv
+
+    code/
+        load_data.py
+        preprocess.py
+        model.py
+        evaluate.py
+        robustness.py
+        visualize.py
+        main.py
+
+    experiments/
+        experiment_001/
+        experiment_002/
+        experiment_003/
+
+    figures/
+        figure_001.png
+        figure_002.png
+
+    tables/
+        table_001.csv
+        table_002.csv
+
+    metrics/
+        model_comparison.csv
+        robustness_summary.csv
+
+    evidence/
+        claims.json
+        claim_artifact_links.json
+
+    citations/
+        citations.json
+        references.bib
+
+    reports/
+        report_outline.json
+        report.md
+        report.tex
+        report.pdf
+        report_claim_map.json
+
+    disclosures/
+        ai_disclosure.md
+
+    logs/
+        workflow.jsonl
+        sandbox.log
+        debug_patch_log.jsonl
+
+    manifests/
+        input_manifest.json
+        artifact_manifest.json
+        reproducibility_manifest.json
+
+    exports/
+        modelforge_run_20260602_001.zip
+
+======================================================================
+APPENDIX G. ENGINEERING CONVENTIONS
+======================================================================
+
+G.1 Naming
+
+Python:
+    snake_case
+
+Classes:
+    PascalCase
+
+API paths:
+    kebab-case where appropriate
+
+Artifact IDs:
+    artifact_{type}_{uuid}
+
+Experiment IDs:
+    experiment_{uuid}
+
+Run IDs:
+    run_{timestamp}_{short_uuid}
+
+Claim IDs:
+    claim_{uuid}
+
+G.2 Versioning
+
+Use semantic versioning:
+    MAJOR.MINOR.PATCH
+
+Version:
+    Prompt templates
+    Competition profiles
+    Method-library entries
+    API schema
+    Database migrations
+    Sandbox images
+
+G.3 Documentation
+
+Every major module SHOULD include:
+    - Purpose
+    - Inputs
+    - Outputs
+    - Invariants
+    - Failure modes
+    - Tests
+    - Security notes
+
+G.4 Open-Source README Checklist
+
+The public README SHOULD include:
+    - Project summary
+    - Architecture diagram
+    - Workflow diagram
+    - Demo GIF
+    - Quick start
+    - Feature list
+    - Example run
+    - Export structure
+    - Security notes
+    - Compliance positioning
+    - Benchmark results
+    - Roadmap
+    - Contribution guide
+    - License
+
+======================================================================
+END OF DOCUMENT
+======================================================================
