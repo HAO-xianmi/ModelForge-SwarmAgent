@@ -102,6 +102,8 @@ class ModelingState(MFBaseModel):
 
     report_outline: ReportOutline | None = None
     report_artifacts: ReportArtifacts | None = None
+    # Drafted section bodies keyed by section_id, between writer and assembly.
+    section_texts: dict[str, str] = Field(default_factory=dict)
 
     blocking_issues: list[BlockingIssue] = Field(default_factory=list)
     pending_checkpoint: Checkpoint | None = None

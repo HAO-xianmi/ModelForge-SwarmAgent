@@ -5,6 +5,33 @@ Records important decisions and deviations from the architecture spec
 
 ---
 
+## Phase F — Workflow
+
+### D-F1: Explicit checkpoint-aware driver, LangGraph for topology
+**Decision:** The workflow executes via an explicit `Workflow.run/step` driver
+(not `graph.invoke`); `build_langgraph` builds a `StateGraph` for topology
+documentation/visualization only.
+**Why:** The three human checkpoints must pause execution and resume across
+process boundaries (a request creates a run, a later request resolves a
+checkpoint). LangGraph's single `invoke` cannot cleanly pause/resume mid-graph
+with our DB-persisted blackboard, so the driver owns stepping + persistence +
+audit per node, and LangGraph documents the spec's Appendix-B topology.
+
+### D-F2: Optional checkpoints auto-pass in practice mode
+**Decision:** When the active competition profile does not require a checkpoint,
+the driver auto-advances past it (recorded in audit) instead of pausing.
+**Why:** Spec 25 makes checkpoints mandatory only under contest-compliant
+profiles; practice mode permits full automation (spec 5.1). A real bug here
+(driver returned on auto-pass and never set status past PARSING / never reached
+EXPORTING) was caught by the e2e test and fixed.
+
+### D-F3: PEP 695 reverted for mypy 1.11 compatibility
+**Decision:** Use classic `TypeVar`/`Generic` instead of `class Foo[T]`.
+**Why:** mypy 1.11 does not fully support PEP 695 generic classes (reports
+"expects no type arguments"). Ruff `UP046/UP047` suppressed in pyproject.
+
+---
+
 ## Phase D — Services
 
 ### D-D1: Code templates use sentinel tokens, not str.format

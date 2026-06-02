@@ -2,7 +2,7 @@
 
 Living status report for ModelForge-Swarm. Updated continuously per working rule 2.
 
-**Last updated:** 2026-06-03 (Phase E complete)
+**Last updated:** 2026-06-03 (Phase F complete — full e2e run works)
 
 ## Legend
 - ✅ Complete & tested
@@ -21,7 +21,7 @@ Living status report for ModelForge-Swarm. Updated continuously per working rule
 | C | Storage, DB, artifact registry, state versioning, audit | ✅ |
 | D | Deterministic services | ✅ |
 | E | LLM provider abstraction + 10 agents | ✅ |
-| F | LangGraph workflow, checkpoints, report, export | ⬜ |
+| F | LangGraph workflow, checkpoints, report, export | ✅ |
 | G | FastAPI, CLI, frontend, examples, docs | ⬜ |
 
 ---
@@ -97,8 +97,18 @@ _None yet._
 - `agents/base.py` — `BaseAgent` with typed I/O, bounded retry + repair-once, model-call accounting (tokens/cost/latency).
 - `agents/` — ProblemParser, DomainAnalyst, MethodRetriever (deterministic), StrategyProposer (3 instances), Skeptic, StrategyJudge, CodeAuthor (uses real CodeGenerator), Debugger (safe minimal repairs only), PaperArchitect (filters to existing claims), PaperWriter (verified claims only).
 
+### Phase F — Workflow + report + export ✅
+- `graph/control.py` — BudgetManager, LoopGuard (bounded retries/caps), CheckpointManager.
+- `graph/deps.py` — `WorkflowDeps` dependency bundle (registries + all services + provider).
+- `graph/nodes.py` — all workflow nodes (parse/analyze/retrieve/strategies/skeptic/pilots/select/profile/code/sandbox/baselines/robustness/audit/evidence/architect/write/citations/judge) + report-file assembly.
+- `graph/workflow.py` — explicit checkpoint-aware driver with conditional routing + loop protection; `build_langgraph` documents the LangGraph topology.
+- `graph/coordinator.py` — `RunCoordinator` (create/ingest/start/resolve-checkpoint/cancel) — the top-level orchestration API.
+- `services/report/builder.py` — evidence-constrained markdown/LaTeX assembly + claim map (strips unverified claim refs).
+- `services/report/latex.py` — pdflatex compilation (graceful skip without compiler).
+- `services/exporters/bundle.py` — reproducibility ZIP + manifest (dedupes colliding filenames).
+
 ## Pending modules
-Phase F (LangGraph workflow + checkpoints + report + export), G (API+CLI+frontend+examples).
+Phase G (FastAPI, CLI, frontend, examples, docs, final validation).
 
 ---
 
@@ -135,8 +145,9 @@ _None._
 - `tests/integration/test_codegen_execution.py` — 17/17 (**all 15 templates execute for real**, determinism).
 - `tests/integration/test_experiment_pipeline.py` — 8/8 (pilot/formal/baseline/robustness/audit, real runs).
 - `tests/unit/test_agents.py` — 12/12 (typed I/O, repair-once, safe-failure, skeptic non-approval, judge references pilots, writer excludes rejected claims).
+- `tests/integration/test_workflow_e2e.py` — 4/4 (**full e2e prediction run** to COMPLETED + bundle, contest-mode 3-checkpoint pause/approve flow, no fabricated metrics).
 
-## Total: 117 tests passing (92 unit + 25 integration).
+## Total: 121 tests passing (92 unit + 29 integration/e2e).
 
 ## External services requiring credentials
 - OpenAI / Anthropic (LLM) — optional, mock default.
@@ -145,7 +156,6 @@ _None._
 - Docker daemon — optional for Docker sandbox path.
 
 ## Recommended next step
-Phase F — LangGraph workflow wiring all nodes (control plane: Supervisor,
-checkpoints, budget/loop protection), report generation (architect→writer with
-evidence gating, markdown/LaTeX/PDF), and the reproducibility ZIP bundle +
-manifest. One full e2e prediction run.
+Phase G — FastAPI backend (all core endpoints), CLI (incl. `doctor`/`demo`),
+lean Next.js frontend, 3 deterministic examples, docs, and
+`FINAL_VALIDATION_REPORT.md`.
