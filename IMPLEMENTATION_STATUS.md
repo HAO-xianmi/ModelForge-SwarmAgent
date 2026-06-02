@@ -2,7 +2,7 @@
 
 Living status report for ModelForge-Swarm. Updated continuously per working rule 2.
 
-**Last updated:** 2026-06-02 (Phase C complete)
+**Last updated:** 2026-06-03 (Phase D complete)
 
 ## Legend
 - ✅ Complete & tested
@@ -19,7 +19,7 @@ Living status report for ModelForge-Swarm. Updated continuously per working rule
 | A | Foundation: repo, config, common utils, tooling | ✅ |
 | B | Domain schemas + enums | ✅ |
 | C | Storage, DB, artifact registry, state versioning, audit | ✅ |
-| D | Deterministic services | ⬜ |
+| D | Deterministic services | ✅ |
 | E | LLM provider abstraction + 10 agents | ⬜ |
 | F | LangGraph workflow, checkpoints, report, export | ⬜ |
 | G | FastAPI, CLI, frontend, examples, docs | ⬜ |
@@ -74,10 +74,22 @@ _None yet._
 - `services/sandbox/factory.py` — `docker_available()` probe + `select_sandbox_runner()` auto-select.
 - `docker/sandbox/` — Dockerfile (non-root, pinned science stack) + requirements + entrypoint.
 
-## Pending modules (Phase D remainder)
-Ingestion, data profiler, method library, pilots, formal experiment pipeline +
-debug, baselines, robustness, auditor, evidence registry, citation registry,
-compliance engine. Then Phases E–G.
+### Phase D (rest) — Services ✅
+- `services/ingestion/` — txt/md/pdf/csv/xlsx/zip; sanitize, MIME allowlist, size caps, ZIP traversal/bomb guards, manifest.
+- `services/profiling/` — types, missing, duplicates, IQR outliers (flagged not deleted), dates, identifiers, leakage heuristics, correlations.
+- `services/method_library/` — 23 method records + deterministic retrieval/ranking.
+- `services/codegen/` — 8 runnable templates → spec 20.2 multi-file project; **all 15 template variants execute for real** and produce metrics.
+- `services/experiments/runner.py` — experiment tracker: real sandbox run + reproducibility metadata + figure/table/log/metrics artifact registration + bounded debug loop.
+- `services/experiments/pilots.py` — pilot experiments per pilotable strategy.
+- `services/experiments/baselines.py` — family-aware baselines + explicit waivers.
+- `services/experiments/robustness.py` — repeated-seed sensitivity + stability summary + waivers.
+- `services/experiments/auditor.py` — quality-gate checks → blocking issues with routing hints.
+- `services/evidence/` — Evidence Registry: quantitative claims require a REAL metric; writer filter.
+- `services/citations/` — registry + normalize/dedupe/verify + Crossref adapter (graceful offline).
+- `services/compliance/` — engine + 5 YAML profiles + AI-use disclosure markdown.
+
+## Pending modules
+Phases E (agents+LLM), F (workflow+report+export), G (API+CLI+frontend+examples).
 
 ---
 
@@ -107,7 +119,14 @@ compliance engine. Then Phases E–G.
 ## Tests still failing
 _None._
 
-## Total: 37 unit tests passing.
+- `tests/unit/test_sandbox.py` — 10/10 (real subprocess exec, timeout, policy block, secret isolation).
+- `tests/unit/test_ingestion.py` — 12/12 (ingestion + profiler, ZIP traversal, oversized upload).
+- `tests/unit/test_method_library.py` — 8/8.
+- `tests/unit/test_evidence_citations_compliance.py` — 13/13.
+- `tests/integration/test_codegen_execution.py` — 17/17 (**all 15 templates execute for real**, determinism).
+- `tests/integration/test_experiment_pipeline.py` — 8/8 (pilot/formal/baseline/robustness/audit, real runs).
+
+## Total: 105 tests passing (80 unit + 25 integration).
 
 ## External services requiring credentials
 - OpenAI / Anthropic (LLM) — optional, mock default.
@@ -116,9 +135,8 @@ _None._
 - Docker daemon — optional for Docker sandbox path.
 
 ## Recommended next step
-Phase D — deterministic services: ingestion (txt/md/pdf/csv/xlsx/zip), data
-profiler, method library (20 methods), the SandboxRunner abstraction
-(subprocess + docker), pilots, formal experiment pipeline + bounded debug,
-baselines, robustness, experiment auditor, evidence registry, citation
-registry, and the compliance engine (5 profiles). Real-execution + security
-tests.
+Phase E — LLM provider abstraction (mock + OpenAI + Anthropic), prompt registry
+with versioning, and the 10 reasoning agents (parser, analyst, retriever, 3+
+proposer instances, skeptic, judge, code author, debugger, paper architect,
+paper writer) with typed I/O, bounded retries, repair-once, and audit/cost
+tracking. Deterministic mock tests.
