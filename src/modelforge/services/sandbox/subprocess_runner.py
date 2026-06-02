@@ -77,11 +77,16 @@ class SubprocessSandboxRunner:
                 stderr=f"entrypoint not found: {request.entrypoint}",
             )
 
-        env = self._build_env(request)
+        env = self._build_env(request, workspace)
         start = time.monotonic()
         try:
+            # `-E` ignores PYTHON* host env vars; `-B` avoids writing bytecode.
+            # We do NOT use full `-I` because it drops the site-packages where
+            # some allowlisted dependencies live on this host. The static import
+            # allowlist (already applied above) is the real safety boundary for
+            # *which* modules may be used.
             proc = subprocess.run(
-                [sys.executable, "-I", request.entrypoint],
+                [sys.executable, "-E", "-B", request.entrypoint],
                 cwd=str(src_dir),
                 env=env,
                 capture_output=True,
@@ -117,14 +122,34 @@ class SubprocessSandboxRunner:
             metrics=collect_metrics(output_dir),
         )
 
-    def _build_env(self, request: SandboxRequest) -> dict[str, str]:
+    def _build_env(self, request: SandboxRequest, workspace: Path) -> dict[str, str]:
         """Scrubbed environment: no host secrets, network discouraged."""
         env: dict[str, str] = {}
-        # Keep only a minimal safe subset of the host environment.
-        for key in ("PATH", "SYSTEMROOT", "TEMP", "TMP", "LANG", "LC_ALL"):
+        # Keep only a minimal safe subset of the host environment. PATH/system
+        # root locate the interpreter+DLLs; APPDATA is needed on Windows so the
+        # interpreter can resolve its user site-packages (where some allowlisted
+        # deps live on this host). It points only at a package directory, not
+        # secrets.
+        for key in (
+            "PATH",
+            "SYSTEMROOT",
+            "WINDIR",
+            "TEMP",
+            "TMP",
+            "LANG",
+            "LC_ALL",
+            "APPDATA",
+            "LOCALAPPDATA",
+        ):
             if key in os.environ:
                 env[key] = os.environ[key]
-        env["PYTHONNOUSERSITE"] = "1"
+        # Give libraries that need a home/config dir a writable location *inside*
+        # the workspace (matplotlib uses MPLCONFIGDIR; Path.home() uses HOME).
+        cache = workspace / ".cache"
+        cache.mkdir(parents=True, exist_ok=True)
+        env["HOME"] = str(cache)
+        env["MPLCONFIGDIR"] = str(cache / "mpl")
+        env["XDG_CACHE_HOME"] = str(cache)
         env["PYTHONDONTWRITEBYTECODE"] = "1"
         env["MPLBACKEND"] = "Agg"  # headless matplotlib
         env["OMP_NUM_THREADS"] = "1"

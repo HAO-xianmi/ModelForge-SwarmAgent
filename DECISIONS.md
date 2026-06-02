@@ -5,6 +5,35 @@ Records important decisions and deviations from the architecture spec
 
 ---
 
+## Phase D — Services
+
+### D-D1: Code templates use sentinel tokens, not str.format
+**Decision:** Runnable code templates carry literal Python (f-strings, dict
+literals) and substitute parameters via `str.replace("__MODEL_KIND__", ...)`.
+**Why:** `str.format()` collides with the `{...}` braces pervasive in real
+Python code. A first attempt double-escaped braces and was fragile; sentinel
+replacement is robust and keeps templates readable as actual Python.
+
+### D-D2: Subprocess sandbox uses `-E -B`, not full `-I`; import allowlist is the boundary
+**Decision:** The subprocess runner launches `python -E -B`, not `python -I`.
+**Why:** `-I` (and APPDATA scrubbing) dropped the user site-packages where one
+allowlisted dependency (pulp) lives on this host, breaking real execution. The
+*static import allowlist* is the actual control over which modules sandbox code
+may use; `-E` still ignores PYTHON* host vars. `APPDATA`/`LOCALAPPDATA` are kept
+so user-site resolves; `MPLCONFIGDIR`/`HOME` are redirected into the workspace
+so matplotlib has a writable config dir without touching the host home.
+Documented as a known limitation: the subprocess sandbox is weaker than the
+Docker runner, which remains preferred when available.
+
+### D-D3: Synthetic-data fallback in templates, clearly labeled
+**Decision:** When no dataset is present, templates generate a small synthetic
+dataset and set `synthetic_data: 1` in metrics + print `synthetic=True`.
+**Why:** A pilot must establish feasibility even before a dataset is attached.
+The metrics never *hide* that the data was synthetic, so a synthetic result is
+never mistaken for a result on the user's data (working rule 5).
+
+---
+
 ## Phase C — Storage
 
 ### D-C1: Artifact-id-scoped storage paths (immutability fix)
