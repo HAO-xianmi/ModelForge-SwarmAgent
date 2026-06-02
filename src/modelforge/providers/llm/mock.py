@@ -188,6 +188,29 @@ def _mock_strategy_proposer(context: dict, prompt: str) -> dict:
     }
 
 
+# Methods that belong to each problem family (used to keep the mock's choice
+# family-consistent even when retrieval returns cross-family candidates).
+_FAMILY_METHODS = {
+    "prediction": ["linear_regression", "random_forest", "gradient_boosting", "arima"],
+    "classification": ["logistic_regression", "random_forest", "decision_tree"],
+    "optimization": ["integer_programming", "linear_programming", "genetic_algorithm"],
+    "graph": ["shortest_path", "centrality", "max_flow"],
+    "clustering": ["kmeans", "dbscan", "hierarchical_clustering"],
+    "evaluation": ["topsis", "entropy_weight", "pca"],
+    "simulation": ["monte_carlo"],
+}
+
+_FAMILY_DEFAULT = {
+    "prediction": "linear_regression",
+    "classification": "logistic_regression",
+    "optimization": "integer_programming",
+    "graph": "shortest_path",
+    "clustering": "kmeans",
+    "evaluation": "topsis",
+    "simulation": "monte_carlo",
+}
+
+
 def _pick_method(goal: str, family: str, methods: list[str]) -> str:
     prefer = {
         ("interpretability_first", "prediction"): "linear_regression",
@@ -201,13 +224,18 @@ def _pick_method(goal: str, family: str, methods: list[str]) -> str:
         ("innovation_first", "optimization"): "genetic_algorithm",
     }
     chosen = prefer.get((goal, family))
-    if chosen and (not methods or chosen in methods):
+    if chosen:
         return chosen
-    if methods:
-        return _seeded_choice(goal + family, methods)
-    return {"prediction": "linear_regression", "classification": "logistic_regression",
-            "optimization": "integer_programming", "graph": "shortest_path",
-            "clustering": "kmeans", "evaluation": "topsis"}.get(family, "linear_regression")
+    # Constrain to methods that BELONG to the detected family, so the chosen
+    # method's code template always matches the family (avoids running, e.g.,
+    # an evaluation template for a graph problem).
+    family_methods = _FAMILY_METHODS.get(family, [])
+    in_family = [m for m in methods if m in family_methods]
+    if in_family:
+        return _seeded_choice(goal + family, in_family)
+    if family_methods:
+        return _seeded_choice(goal + family, family_methods)
+    return _FAMILY_DEFAULT.get(family, "linear_regression")
 
 
 def _mock_skeptic(context: dict, prompt: str) -> dict:

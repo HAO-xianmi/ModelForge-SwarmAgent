@@ -1,0 +1,15 @@
+Simple Prediction Example
+=========================
+
+A small retailer records three numeric predictors (f0, f1, f2) and a continuous
+target value per observation. The goal is to build and validate a regression
+model that predicts the target from the predictors, and to report its accuracy
+(RMSE / MAE / R2) with a baseline comparison and a sensitivity analysis across
+random seeds.
+
+Deliverables:
+  - A trained regression model.
+  - Held-out evaluation metrics (RMSE, MAE, R2).
+  - A baseline comparison (e.g. linear regression).
+  - A robustness/sensitivity analysis.
+  - A short evidence-backed report.

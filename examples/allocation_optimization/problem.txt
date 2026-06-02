@@ -1,0 +1,14 @@
+Allocation Optimization Example
+===============================
+
+A planner must select a subset of items to maximize total value subject to a
+shared resource capacity. Each item has a value and a weight (resource cost);
+the total weight of selected items must not exceed the given capacity.
+
+This is a 0/1 knapsack / integer-programming problem.
+
+Deliverables:
+  - An optimal (or near-optimal) selection of items.
+  - The achieved objective value and capacity utilization.
+  - A baseline comparison (e.g. a greedy heuristic).
+  - A short evidence-backed report with the allocation table.

@@ -1,0 +1,14 @@
+Network Analysis Example
+========================
+
+Given a weighted undirected graph described as an edge list (source, target,
+weight), analyze its structure: identify the most central nodes and/or the
+shortest path between two nodes, and visualize the network.
+
+This is a graph-theory problem (centrality / shortest path).
+
+Deliverables:
+  - Node centrality ranking and/or a shortest-path result.
+  - A graph visualization figure.
+  - A results table.
+  - A short evidence-backed report.
