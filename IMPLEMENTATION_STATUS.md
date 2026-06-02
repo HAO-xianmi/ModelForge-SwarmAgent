@@ -2,7 +2,7 @@
 
 Living status report for ModelForge-Swarm. Updated continuously per working rule 2.
 
-**Last updated:** 2026-06-03 (Phase F complete — full e2e run works)
+**Last updated:** 2026-06-03 (Phase G complete — all phases done, 136 tests pass)
 
 ## Legend
 - ✅ Complete & tested
@@ -22,7 +22,7 @@ Living status report for ModelForge-Swarm. Updated continuously per working rule
 | D | Deterministic services | ✅ |
 | E | LLM provider abstraction + 10 agents | ✅ |
 | F | LangGraph workflow, checkpoints, report, export | ✅ |
-| G | FastAPI, CLI, frontend, examples, docs | ⬜ |
+| G | FastAPI, CLI, frontend, examples, docs | ✅ |
 
 ---
 
@@ -107,8 +107,18 @@ _None yet._
 - `services/report/latex.py` — pdflatex compilation (graceful skip without compiler).
 - `services/exporters/bundle.py` — reproducibility ZIP + manifest (dedupes colliding filenames).
 
-## Pending modules
-Phase G (FastAPI, CLI, frontend, examples, docs, final validation).
+### Phase G — Surfaces, examples, docs ✅
+- `api/` — FastAPI app: all spec §26 endpoints + structured errors + OpenAPI docs.
+- `cli/` — Typer CLI: init, create-run, upload, start, status, events, artifacts, checkpoints, resolve-checkpoint, export, **doctor**, **demo**.
+- `apps/web/` — Next.js console (New Run, Run Dashboard with checkpoints/metrics/tabs, Methods); typechecks + builds clean.
+- `examples/` — 3 deterministic examples (prediction/optimization/graph), runner, README; all run e2e.
+- `docs/` — architecture overview + workflow diagram + deployment guide.
+- `README.md`, `FINAL_VALIDATION_REPORT.md` finalized.
+
+## Pending modules (future / out of MVP scope)
+- Benchmark suite (spec §39) — research-grade work.
+- Remaining frontend pages (React Flow graph, Monaco, Evidence Explorer, Benchmark Dashboard).
+- Excel/image-assisted ingestion, research-paper retrieval (phase-two scope).
 
 ---
 
@@ -146,8 +156,12 @@ _None._
 - `tests/integration/test_experiment_pipeline.py` — 8/8 (pilot/formal/baseline/robustness/audit, real runs).
 - `tests/unit/test_agents.py` — 12/12 (typed I/O, repair-once, safe-failure, skeptic non-approval, judge references pilots, writer excludes rejected claims).
 - `tests/integration/test_workflow_e2e.py` — 4/4 (**full e2e prediction run** to COMPLETED + bundle, contest-mode 3-checkpoint pause/approve flow, no fabricated metrics).
+- `tests/integration/test_api.py` — 7/7 (full HTTP run, contest checkpoint flow, ZIP download).
+- `tests/integration/test_cli.py` — 5/5 (create→upload→start→completed, doctor, demo).
+- `tests/integration/test_examples.py` — 3/3 (prediction/optimization/graph through the full workflow).
+- Frontend: `tsc --noEmit` clean; `next build` compiles all routes.
 
-## Total: 121 tests passing (92 unit + 29 integration/e2e).
+## Total: 136 tests passing (92 unit + 44 integration/e2e). ruff + mypy clean (101 src files).
 
 ## External services requiring credentials
 - OpenAI / Anthropic (LLM) — optional, mock default.
@@ -156,6 +170,8 @@ _None._
 - Docker daemon — optional for Docker sandbox path.
 
 ## Recommended next step
-Phase G — FastAPI backend (all core endpoints), CLI (incl. `doctor`/`demo`),
-lean Next.js frontend, 3 deterministic examples, docs, and
-`FINAL_VALIDATION_REPORT.md`.
+All seven build phases (A–G) are complete and tested. Recommended follow-ups
+(out of MVP scope): exercise the Docker sandbox path on a Docker host; wire a
+real LLM provider with a key; build the benchmark suite (spec §39); and flesh out
+the remaining frontend pages (React Flow workflow graph, Monaco code/report
+viewer, Evidence Explorer, Benchmark Dashboard).
