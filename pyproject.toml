@@ -66,7 +66,9 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "C4", "SIM", "RUF"]
-ignore = ["B008", "RUF012"]
+# UP046/UP047: PEP 695 generics not yet fully supported by mypy 1.11, so we use
+# the classic TypeVar/Generic form intentionally.
+ignore = ["B008", "RUF012", "UP046", "UP047"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["B011"]

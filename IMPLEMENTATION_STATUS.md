@@ -2,7 +2,7 @@
 
 Living status report for ModelForge-Swarm. Updated continuously per working rule 2.
 
-**Last updated:** 2026-06-03 (Phase D complete)
+**Last updated:** 2026-06-03 (Phase E complete)
 
 ## Legend
 - ✅ Complete & tested
@@ -20,7 +20,7 @@ Living status report for ModelForge-Swarm. Updated continuously per working rule
 | B | Domain schemas + enums | ✅ |
 | C | Storage, DB, artifact registry, state versioning, audit | ✅ |
 | D | Deterministic services | ✅ |
-| E | LLM provider abstraction + 10 agents | ⬜ |
+| E | LLM provider abstraction + 10 agents | ✅ |
 | F | LangGraph workflow, checkpoints, report, export | ⬜ |
 | G | FastAPI, CLI, frontend, examples, docs | ⬜ |
 
@@ -88,8 +88,17 @@ _None yet._
 - `services/citations/` — registry + normalize/dedupe/verify + Crossref adapter (graceful offline).
 - `services/compliance/` — engine + 5 YAML profiles + AI-use disclosure markdown.
 
+### Phase E — LLM providers + agents ✅
+- `providers/llm/base.py` — `LLMProvider` Protocol, `Message`/`LLMResponse`/`TokenUsage`, `parse_structured` + JSON extraction.
+- `providers/llm/mock.py` — deterministic, problem-aware `MockProvider` (keyless); per-agent dispatch; never emits experiment metrics.
+- `providers/llm/openai_provider.py`, `anthropic_provider.py` — HTTP adapters (token/cost tracking); network/key-dependent, mock is default.
+- `providers/llm/factory.py` — provider selection from config.
+- `prompts/registry.py` — versioned prompt contracts (role/forbidden/output) for all 9 LLM agents.
+- `agents/base.py` — `BaseAgent` with typed I/O, bounded retry + repair-once, model-call accounting (tokens/cost/latency).
+- `agents/` — ProblemParser, DomainAnalyst, MethodRetriever (deterministic), StrategyProposer (3 instances), Skeptic, StrategyJudge, CodeAuthor (uses real CodeGenerator), Debugger (safe minimal repairs only), PaperArchitect (filters to existing claims), PaperWriter (verified claims only).
+
 ## Pending modules
-Phases E (agents+LLM), F (workflow+report+export), G (API+CLI+frontend+examples).
+Phase F (LangGraph workflow + checkpoints + report + export), G (API+CLI+frontend+examples).
 
 ---
 
@@ -125,8 +134,9 @@ _None._
 - `tests/unit/test_evidence_citations_compliance.py` — 13/13.
 - `tests/integration/test_codegen_execution.py` — 17/17 (**all 15 templates execute for real**, determinism).
 - `tests/integration/test_experiment_pipeline.py` — 8/8 (pilot/formal/baseline/robustness/audit, real runs).
+- `tests/unit/test_agents.py` — 12/12 (typed I/O, repair-once, safe-failure, skeptic non-approval, judge references pilots, writer excludes rejected claims).
 
-## Total: 105 tests passing (80 unit + 25 integration).
+## Total: 117 tests passing (92 unit + 25 integration).
 
 ## External services requiring credentials
 - OpenAI / Anthropic (LLM) — optional, mock default.
@@ -135,8 +145,7 @@ _None._
 - Docker daemon — optional for Docker sandbox path.
 
 ## Recommended next step
-Phase E — LLM provider abstraction (mock + OpenAI + Anthropic), prompt registry
-with versioning, and the 10 reasoning agents (parser, analyst, retriever, 3+
-proposer instances, skeptic, judge, code author, debugger, paper architect,
-paper writer) with typed I/O, bounded retries, repair-once, and audit/cost
-tracking. Deterministic mock tests.
+Phase F — LangGraph workflow wiring all nodes (control plane: Supervisor,
+checkpoints, budget/loop protection), report generation (architect→writer with
+evidence gating, markdown/LaTeX/PDF), and the reproducibility ZIP bundle +
+manifest. One full e2e prediction run.
