@@ -5,6 +5,35 @@ Records important decisions and deviations from the architecture spec
 
 ---
 
+## Phase C — Storage
+
+### D-C1: Artifact-id-scoped storage paths (immutability fix)
+**Decision:** On-disk artifact paths are `{subdir}/{id_suffix}__{filename}`, not
+`{subdir}/{filename}`.
+**Why:** A test revealed that revising an artifact reusing the same human
+filename overwrote the original file's bytes — the DB row was immutable but the
+*bytes* were not, violating spec 11.4. Scoping the path by artifact id makes
+every artifact's bytes immutable while keeping a readable `filename` in the
+record. Consumers always read through the registry (`storage_uri`), so the
+internal name is invisible.
+
+### D-C2: Blackboard state stored as JSON version rows
+**Decision:** `ModelingState` is persisted as full JSON snapshots in
+`run_state_versions`, one immutable numbered row per update, rather than
+normalized columns.
+**Why:** The blackboard is the single source of truth and evolves quickly; full
+snapshots give trivial point-in-time recovery (spec 32.4 resume) and an exact
+audit trail, at the cost of storage we accept for a local-first tool. Changed
+fields are diffed for the audit event.
+
+### D-C3: `create_all` for local, Alembic for prod
+**Decision:** Tests and the zero-config path use `Base.metadata.create_all`;
+`alembic upgrade head` is the production path. Both target the same metadata.
+**Why:** Keeps the MVP runnable with no migration step while still shipping real
+migrations (acceptance criteria + spec 27).
+
+---
+
 ## Phase A — Foundation
 
 ### D-A1: `StrEnum` for all string enums
