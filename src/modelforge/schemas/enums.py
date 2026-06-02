@@ -1,0 +1,260 @@
+"""All enumerations used across schemas.
+
+Values mirror the architecture spec exactly (states 10.3, claim/citation
+statuses 12/23, sandbox states 9.3, checkpoint actions 7.2, artifact types
+11.2, event types 31.1, etc.) so audit records are spec-faithful.
+"""
+
+from __future__ import annotations
+
+from enum import StrEnum
+
+
+class RunStatus(StrEnum):
+    """Top-level workflow status values (spec 10.3)."""
+
+    CREATED = "CREATED"
+    INGESTING = "INGESTING"
+    PARSING = "PARSING"
+    WAITING_FOR_CHECKPOINT_1 = "WAITING_FOR_CHECKPOINT_1"
+    RETRIEVING_METHODS = "RETRIEVING_METHODS"
+    GENERATING_STRATEGIES = "GENERATING_STRATEGIES"
+    CRITIQUING_STRATEGIES = "CRITIQUING_STRATEGIES"
+    RUNNING_PILOTS = "RUNNING_PILOTS"
+    SELECTING_STRATEGY = "SELECTING_STRATEGY"
+    WAITING_FOR_CHECKPOINT_2 = "WAITING_FOR_CHECKPOINT_2"
+    PROFILING_DATA = "PROFILING_DATA"
+    GENERATING_CODE = "GENERATING_CODE"
+    RUNNING_SANDBOX = "RUNNING_SANDBOX"
+    DEBUGGING_CODE = "DEBUGGING_CODE"
+    RUNNING_BASELINES = "RUNNING_BASELINES"
+    RUNNING_ROBUSTNESS_TESTS = "RUNNING_ROBUSTNESS_TESTS"
+    AUDITING_EXPERIMENTS = "AUDITING_EXPERIMENTS"
+    REGISTERING_EVIDENCE = "REGISTERING_EVIDENCE"
+    ARCHITECTING_REPORT = "ARCHITECTING_REPORT"
+    WRITING_REPORT = "WRITING_REPORT"
+    VERIFYING_CITATIONS = "VERIFYING_CITATIONS"
+    RUNNING_JUDGE_PANEL = "RUNNING_JUDGE_PANEL"
+    WAITING_FOR_CHECKPOINT_3 = "WAITING_FOR_CHECKPOINT_3"
+    EXPORTING = "EXPORTING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
+class ActorType(StrEnum):
+    """Who performed a state change (spec 10.4 rule 5: humans vs machines)."""
+
+    SYSTEM = "system"
+    AGENT = "agent"
+    SERVICE = "service"
+    HUMAN = "human"
+
+
+class ArtifactType(StrEnum):
+    """Artifact taxonomy (spec 11.2)."""
+
+    INPUT_FILE = "INPUT_FILE"
+    PARSED_TEXT = "PARSED_TEXT"
+    EXTRACTED_TABLE = "EXTRACTED_TABLE"
+    PROBLEM_CARD = "PROBLEM_CARD"
+    DOMAIN_ANALYSIS = "DOMAIN_ANALYSIS"
+    METHOD_RETRIEVAL = "METHOD_RETRIEVAL"
+    STRATEGY_CANDIDATE = "STRATEGY_CANDIDATE"
+    SKEPTIC_REPORT = "SKEPTIC_REPORT"
+    PILOT_SCRIPT = "PILOT_SCRIPT"
+    PILOT_RESULT = "PILOT_RESULT"
+    DATA_PROFILE = "DATA_PROFILE"
+    NOTEBOOK = "NOTEBOOK"
+    SCRIPT = "SCRIPT"
+    DEPENDENCY_LOCK = "DEPENDENCY_LOCK"
+    EXECUTION_LOG = "EXECUTION_LOG"
+    METRICS_FILE = "METRICS_FILE"
+    FIGURE = "FIGURE"
+    TABLE = "TABLE"
+    BASELINE_RESULT = "BASELINE_RESULT"
+    ROBUSTNESS_RESULT = "ROBUSTNESS_RESULT"
+    EVIDENCE_RECORD = "EVIDENCE_RECORD"
+    CITATION_RECORD = "CITATION_RECORD"
+    REPORT_OUTLINE = "REPORT_OUTLINE"
+    REPORT_MARKDOWN = "REPORT_MARKDOWN"
+    REPORT_LATEX = "REPORT_LATEX"
+    REPORT_PDF = "REPORT_PDF"
+    DISCLOSURE_RECORD = "DISCLOSURE_RECORD"
+    REPRODUCIBILITY_BUNDLE = "REPRODUCIBILITY_BUNDLE"
+
+
+class SandboxStatus(StrEnum):
+    """Sandbox execution states (spec 9.3)."""
+
+    QUEUED = "QUEUED"
+    BUILDING = "BUILDING"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    TIMED_OUT = "TIMED_OUT"
+    CANCELLED = "CANCELLED"
+    POLICY_BLOCKED = "POLICY_BLOCKED"
+
+
+class ExperimentType(StrEnum):
+    PILOT = "PILOT"
+    FORMAL = "FORMAL"
+    BASELINE = "BASELINE"
+    ROBUSTNESS = "ROBUSTNESS"
+    ABLATION = "ABLATION"
+
+
+class ExperimentStatus(StrEnum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+
+
+class ClaimType(StrEnum):
+    """Evidence claim types (spec 12.2)."""
+
+    QUANTITATIVE_RESULT = "QUANTITATIVE_RESULT"
+    QUALITATIVE_OBSERVATION = "QUALITATIVE_OBSERVATION"
+    MODEL_COMPARISON = "MODEL_COMPARISON"
+    ROBUSTNESS_CONCLUSION = "ROBUSTNESS_CONCLUSION"
+    DATA_DESCRIPTION = "DATA_DESCRIPTION"
+    LIMITATION = "LIMITATION"
+    LITERATURE_STATEMENT = "LITERATURE_STATEMENT"
+    COMPLIANCE_STATEMENT = "COMPLIANCE_STATEMENT"
+
+
+class ClaimStatus(StrEnum):
+    """Evidence claim verification status (spec 12.3)."""
+
+    PENDING = "PENDING"
+    VERIFIED = "VERIFIED"
+    REJECTED = "REJECTED"
+    NEEDS_HUMAN_REVIEW = "NEEDS_HUMAN_REVIEW"
+
+
+class CitationStatus(StrEnum):
+    """Citation verification status (spec 23.2)."""
+
+    VERIFIED = "VERIFIED"
+    PARTIALLY_VERIFIED = "PARTIALLY_VERIFIED"
+    UNRESOLVED = "UNRESOLVED"
+    REJECTED = "REJECTED"
+    NEEDS_HUMAN_REVIEW = "NEEDS_HUMAN_REVIEW"
+
+
+class CheckpointId(StrEnum):
+    """The three human checkpoints (spec 25)."""
+
+    PROBLEM_UNDERSTANDING = "problem_understanding"
+    STRATEGY_SELECTION = "strategy_selection"
+    FINAL_REPORT = "final_report"
+
+
+class CheckpointStatus(StrEnum):
+    PENDING = "PENDING"
+    RESOLVED = "RESOLVED"
+    CANCELLED = "CANCELLED"
+
+
+class CheckpointAction(StrEnum):
+    """Allowed checkpoint decisions (spec 7.2)."""
+
+    APPROVE = "APPROVE"
+    APPROVE_WITH_EDITS = "APPROVE_WITH_EDITS"
+    REJECT_AND_RETRY = "REJECT_AND_RETRY"
+    RETURN_TO_STAGE = "RETURN_TO_STAGE"
+    CANCEL_RUN = "CANCEL_RUN"
+
+
+class JudgeDecision(StrEnum):
+    """StrategyJudgeAgent decisions (spec 8.6)."""
+
+    SELECT = "SELECT"
+    MERGE = "MERGE"
+    REVISE = "REVISE"
+    REGENERATE = "REGENERATE"
+    ESCALATE_TO_HUMAN = "ESCALATE_TO_HUMAN"
+
+
+class IssueSeverity(StrEnum):
+    BLOCKER = "BLOCKER"
+    MAJOR = "MAJOR"
+    MINOR = "MINOR"
+    INFO = "INFO"
+
+
+class StrategyGoal(StrEnum):
+    """Proposer instance design goals (spec 8.4)."""
+
+    INTERPRETABILITY_FIRST = "interpretability_first"
+    PERFORMANCE_FIRST = "performance_first"
+    INNOVATION_FIRST = "innovation_first"
+    LOW_COST_FIRST = "low_cost_first"
+    ROBUSTNESS_FIRST = "robustness_first"
+
+
+class MethodCategory(StrEnum):
+    """Method library top-level taxonomy (spec 16.2)."""
+
+    PREDICTION = "prediction"
+    OPTIMIZATION = "optimization"
+    EVALUATION = "evaluation"
+    SIMULATION = "simulation"
+    GRAPH = "graph"
+    DIFFERENTIAL_EQUATIONS = "differential_equations"
+    CLUSTERING = "clustering"
+    CLASSIFICATION = "classification"
+
+
+class ProblemFamily(StrEnum):
+    """Coarse problem family used for routing code templates and baselines."""
+
+    PREDICTION = "prediction"
+    OPTIMIZATION = "optimization"
+    CLASSIFICATION = "classification"
+    CLUSTERING = "clustering"
+    EVALUATION = "evaluation"
+    GRAPH = "graph"
+    SIMULATION = "simulation"
+    DIFFERENTIAL_EQUATIONS = "differential_equations"
+    UNKNOWN = "unknown"
+
+
+class EventType(StrEnum):
+    """Observability event types (spec 31.1)."""
+
+    RUN_CREATED = "RUN_CREATED"
+    FILE_UPLOADED = "FILE_UPLOADED"
+    INGESTION_COMPLETED = "INGESTION_COMPLETED"
+    PROBLEM_PARSED = "PROBLEM_PARSED"
+    DOMAIN_ANALYZED = "DOMAIN_ANALYZED"
+    METHODS_RETRIEVED = "METHODS_RETRIEVED"
+    STRATEGY_GENERATED = "STRATEGY_GENERATED"
+    STRATEGY_CRITIQUED = "STRATEGY_CRITIQUED"
+    PILOT_STARTED = "PILOT_STARTED"
+    PILOT_COMPLETED = "PILOT_COMPLETED"
+    STRATEGY_SELECTED = "STRATEGY_SELECTED"
+    CHECKPOINT_CREATED = "CHECKPOINT_CREATED"
+    CHECKPOINT_RESOLVED = "CHECKPOINT_RESOLVED"
+    CODE_GENERATED = "CODE_GENERATED"
+    SANDBOX_STARTED = "SANDBOX_STARTED"
+    SANDBOX_COMPLETED = "SANDBOX_COMPLETED"
+    DEBUG_PATCH_APPLIED = "DEBUG_PATCH_APPLIED"
+    BASELINE_COMPLETED = "BASELINE_COMPLETED"
+    ROBUSTNESS_COMPLETED = "ROBUSTNESS_COMPLETED"
+    AUDIT_COMPLETED = "AUDIT_COMPLETED"
+    EVIDENCE_REGISTERED = "EVIDENCE_REGISTERED"
+    REPORT_OUTLINE_CREATED = "REPORT_OUTLINE_CREATED"
+    REPORT_DRAFTED = "REPORT_DRAFTED"
+    CITATIONS_VERIFIED = "CITATIONS_VERIFIED"
+    JUDGE_PANEL_COMPLETED = "JUDGE_PANEL_COMPLETED"
+    EXPORT_CREATED = "EXPORT_CREATED"
+    RUN_COMPLETED = "RUN_COMPLETED"
+    RUN_FAILED = "RUN_FAILED"
+    RUN_CANCELLED = "RUN_CANCELLED"
+    STATE_UPDATED = "STATE_UPDATED"
+    BUDGET_WARNING = "BUDGET_WARNING"
+    ESCALATION_CREATED = "ESCALATION_CREATED"

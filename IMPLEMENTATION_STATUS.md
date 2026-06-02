@@ -2,7 +2,7 @@
 
 Living status report for ModelForge-Swarm. Updated continuously per working rule 2.
 
-**Last updated:** 2026-06-02 (Phase A complete)
+**Last updated:** 2026-06-02 (Phase B complete)
 
 ## Legend
 - ✅ Complete & tested
@@ -17,7 +17,7 @@ Living status report for ModelForge-Swarm. Updated continuously per working rule
 | Phase | Scope | Status |
 |---|---|---|
 | A | Foundation: repo, config, common utils, tooling | ✅ |
-| B | Domain schemas + enums | ⬜ |
+| B | Domain schemas + enums | ✅ |
 | C | Storage, DB, artifact registry, state versioning, audit | ⬜ |
 | D | Deterministic services | ⬜ |
 | E | LLM provider abstraction + 10 agents | ⬜ |
@@ -38,13 +38,26 @@ Living status report for ModelForge-Swarm. Updated continuously per working rule
 - `src/modelforge/common/logging.py` — process logger + `JsonlEventLogger`.
 - `src/modelforge/common/config.py` — `Settings` (pydantic-settings), env validation, `EnvCheck`.
 
+### Phase B — Domain schemas ✅
+- `schemas/enums.py` — all status/category enums (RunStatus, ArtifactType, SandboxStatus, ClaimType/Status, CitationStatus, CheckpointId/Action, JudgeDecision, EventType, MethodCategory, ProblemFamily, StrategyGoal, …).
+- `schemas/base.py` — `MFBaseModel` (extra=forbid, validate_assignment), `TimestampedModel`.
+- `schemas/artifacts.py` — `ArtifactRecord` (immutable), `AuditEvent`, `StateChange`, `ReproducibilityManifest`.
+- `schemas/problem.py` — `FileManifest`, `InputManifest`, `ProblemCard`, `DomainAnalysis`, `RetrievedMethod`, source refs.
+- `schemas/strategy.py` — `StrategyCandidate`, `SkepticReport`, `PilotExperiment`, `JudgeReport`, `StrategyScore`.
+- `schemas/data.py` — `DataProfile`, `ColumnProfile` (detect-not-delete rule).
+- `schemas/experiment.py` — `CodeArtifact`, `SandboxResult`, `ExperimentRecord`, `BaselineResult`, `RobustnessResult`, `BlockingIssue`, `AuditSummary`, `DebugPatch`.
+- `schemas/evidence.py` — `EvidenceClaim` (writer-access rule), `CitationRecord` (inclusion rule + bibtex key).
+- `schemas/report.py` — `ReportOutline`, `ReportSection`, `ReportArtifacts`, `ClaimMapEntry`.
+- `schemas/control.py` — `CompetitionProfile`, `Checkpoint`, `HumanFeedback`, `BudgetState`, `DisclosureRecord`, `FailureState`, `ExportState`.
+- `schemas/state.py` — `ModelingState` (the Shared Blackboard) + `Run`.
+
 ---
 
 ## Partial modules
 _None yet._
 
 ## Pending modules
-Everything in Phases B–G.
+Everything in Phases C–G.
 
 ---
 
@@ -67,6 +80,7 @@ Everything in Phases B–G.
 
 ## Tests passed
 - `tests/unit/test_common.py` — 14/14 (ids, hashing, time, errors, logging, config, env validation).
+- `tests/unit/test_schemas.py` — 13/13 (state roundtrip, extra-field rejection, enum validation, bounds, writer-access rule, citation inclusion, profile capabilities).
 
 ## Tests still failing
 _None._
@@ -78,5 +92,6 @@ _None._
 - Docker daemon — optional for Docker sandbox path.
 
 ## Recommended next step
-Phase B — implement all typed Pydantic v2 domain schemas + enums (the Shared
-Blackboard `ModelingState` and every artifact), with validation tests.
+Phase C — storage layer: SQLAlchemy models, repositories, the Artifact Registry
+(immutable revisions), run-state versioning, audit persistence, local object
+store, run-directory builder, and Alembic migration. Tests for each.

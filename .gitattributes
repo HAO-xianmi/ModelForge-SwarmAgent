@@ -1,0 +1,6 @@
+# Normalize line endings; keep shell scripts LF for the Docker sandbox.
+* text=auto eol=lf
+*.png binary
+*.pdf binary
+*.zip binary
+*.xlsx binary
