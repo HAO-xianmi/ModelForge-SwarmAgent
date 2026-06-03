@@ -17,4 +17,8 @@ def get_llm_provider(backend: LLMBackend | None = None) -> LLMProvider:
         from modelforge.providers.llm.anthropic_provider import AnthropicProvider
 
         return AnthropicProvider()
+    if chosen is LLMBackend.DEEPSEEK:
+        from modelforge.providers.llm.deepseek_provider import DeepSeekProvider
+
+        return DeepSeekProvider()
     return MockProvider()

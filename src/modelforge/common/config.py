@@ -33,6 +33,7 @@ class LLMBackend(StrEnum):
     MOCK = "mock"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
+    DEEPSEEK = "deepseek"
 
 
 class SandboxBackend(StrEnum):
@@ -69,6 +70,10 @@ class Settings(BaseSettings):
         default="https://api.openai.com/v1", alias="OPENAI_BASE_URL"
     )
     anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY")
+    deepseek_api_key: str | None = Field(default=None, alias="DEEPSEEK_API_KEY")
+    deepseek_base_url: str = Field(
+        default="https://api.deepseek.com/v1", alias="DEEPSEEK_BASE_URL"
+    )
 
     # Sandbox
     sandbox: SandboxBackend = SandboxBackend.AUTO
@@ -153,6 +158,15 @@ def validate_environment(settings: Settings | None = None) -> list[EnvCheck]:
                 "openai_api_key",
                 bool(s.openai_api_key),
                 "OPENAI_API_KEY present" if s.openai_api_key else "OPENAI_API_KEY missing",
+                required=True,
+            )
+        )
+    elif s.llm is LLMBackend.DEEPSEEK:
+        checks.append(
+            EnvCheck(
+                "deepseek_api_key",
+                bool(s.deepseek_api_key),
+                "DEEPSEEK_API_KEY present" if s.deepseek_api_key else "DEEPSEEK_API_KEY missing",
                 required=True,
             )
         )

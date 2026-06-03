@@ -12,6 +12,12 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-MVP%20Complete-success.svg)](IMPLEMENTATION_STATUS.md)
 
+## Quick Links
+
+- Chinese project guide: [README.zh-CN.md](README.zh-CN.md)
+- Bilingual extended introduction: [INTRODUCTION.md](INTRODUCTION.md)
+- Implementation status: [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md)
+
 ## English
 
 ### What is this?
@@ -187,6 +193,11 @@ OPENAI_API_KEY=sk-...
 # or
 MODELFORGE_LLM=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
+
+# or
+MODELFORGE_LLM=deepseek
+DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
 
 # optional
 MODELFORGE_SANDBOX=docker
@@ -375,6 +386,7 @@ See [docs/deployment/README.md](docs/deployment/README.md) for details.
 
 ### Documentation map
 
+- [README.zh-CN.md](README.zh-CN.md) - Chinese illustrated guide
 - [INTRODUCTION.md](INTRODUCTION.md) - extended bilingual project introduction
 - [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) - completion status by phase
 - [DECISIONS.md](DECISIONS.md) - architecture and implementation decisions
@@ -562,6 +574,11 @@ OPENAI_API_KEY=sk-...
 # 或者
 MODELFORGE_LLM=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
+
+# 或者
+MODELFORGE_LLM=deepseek
+DEEPSEEK_API_KEY=sk-...
+DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
 
 # 可选
 MODELFORGE_SANDBOX=docker
@@ -753,6 +770,7 @@ docker compose up --build
 
 ### 文档索引
 
+- [README.zh-CN.md](README.zh-CN.md) - 中文图文说明入口
 - [INTRODUCTION.md](INTRODUCTION.md) - 独立的中英双语项目介绍
 - [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) - 分阶段完成情况
 - [DECISIONS.md](DECISIONS.md) - 设计决策记录
