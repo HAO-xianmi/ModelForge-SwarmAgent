@@ -2,13 +2,45 @@
 
 Living status report for ModelForge-Swarm. Updated continuously per working rule 2.
 
-**Last updated:** 2026-06-03 (Phase G complete — all phases done, 136 tests pass)
+**Last updated:** 2026-06-03 (Phase H started — CompetitionJudge benchmark gate done; workflow rebuild Slice 1a done; 154 tests pass)
 
 ## Legend
 - ✅ Complete & tested
 - 🟡 Partial (see reason + remaining work)
 - ⬜ Pending
 - 🚫 Blocked by environment (Docker / network / credentials)
+
+---
+
+## Phase H — Quality rebuild (benchmark-gated)
+
+The MVP (A–G) produces structurally weak modeling papers. Root cause (Phase 1
+analysis, no code change): a keyword → 1-of-20-methods → 1-toy-template →
+narrate-metrics pipeline; no decomposition; prompt few-shot contamination; a
+renderer that cannot emit equations/tables. Specs:
+`docs/superpowers/specs/2026-06-03-competition-judge-benchmark-design.md` and
+`...-workflow-rebuild-design.md`.
+
+**Gate rule:** no workflow change is accepted unless it raises CompetitionJudge
+benchmark scores; nothing is claimed improved without a benchmark number.
+
+| Item | Status | Evidence |
+|---|---|---|
+| CompetitionJudge benchmark gate (the measuring instrument) | ✅ | award 9.03/9.59 vs weak 1.12, **separation 7.91** (≥2.0), bit-reproducible; mock-default keyless |
+| Rubric: 8 dims (MCM/ICM + CUMCM + APMCM + award analysis), hybrid 0.40 struct / 0.60 LLM | ✅ | `services/evaluation/rubric.py`; det ≥40%, LLM ≤60% enforced |
+| Real-paper corpus (pluggable); average tier pending (no synthetic) | ✅ | `benchmark/corpus/` (2 award + 1 weak) |
+| Benchmark suite: irrigation, topsis_evaluation, network, forecasting | ✅ | `benchmark/problems/` |
+| `modelforge benchmark calibrate \| evaluate \| list` | ✅ | `cli/benchmark_cli.py` |
+| Rebuild Slice 1a — de-contaminate prompt contracts (root cause #3) | ✅ | removed qboost/QUBO/AdaBoost few-shot + regression guard |
+| Rebuild Slice 1b — thread subproblems through to writer | ⬜ | in progress |
+| Rebuild Slice 1c — equation/table renderer + assumptions/symbol/sensitivity | ⬜ | pending |
+| Rebuild Slice 1 measure — run irrigation, score new vs weak (1.12) | ⬜ | pending (real-LLM workflow run) |
+| Slices 2–3 — route tournament, domain-model KB, competition agents, red team | ⬜ | pending |
+
+**Benchmark deltas (record per slice):**
+- Baseline (pre-rebuild generated paper, `report.pdf`): **1.12 / 10**.
+- After Slice 1a: instrument stable at 7.91 separation (de-contamination affects
+  generated output, measured at end of Slice 1, not the static corpus).
 
 ---
 
@@ -162,7 +194,8 @@ _None._
 - `tests/integration/test_examples.py` — 3/3 (prediction/optimization/graph through the full workflow).
 - Frontend: `tsc --noEmit` clean; `next build` compiles all routes.
 
-## Total: 136 tests passing (92 unit + 44 integration/e2e). ruff + mypy clean (101 src files).
+## Total: 154 tests passing (110 unit + 44 integration/e2e). ruff + mypy clean.
+_(+18 from Phase H: evaluation structural, benchmark calibration/repeatability, prompt de-contamination guard.)_
 
 ## External services requiring credentials
 - OpenAI / Anthropic (LLM) — optional, mock default.
