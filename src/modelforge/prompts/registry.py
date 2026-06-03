@@ -139,21 +139,24 @@ PROMPTS: dict[str, PromptTemplate] = {
             "invent experimental results",
         ],
         output_contract=(
-            "Output EXACTLY this JSON structure:\n"
+            "Output EXACTLY this JSON structure. The example values are "
+            "PLACEHOLDERS: choose problem_family, method_id(s), and baselines from "
+            "THIS problem and the provided candidate_methods — never copy the "
+            "placeholder names verbatim:\n"
             '{"strategy_id": "s1", "strategy_name": "string", '
             '"design_goal": "performance_first", '
-            '"problem_family": "classification", '
+            '"problem_family": "<one of the family values listed below>", '
             '"subproblem_mapping": ["P1", "P2", "P3"], '
-            '"method_stack": [{"method_id": "qboost", "role": "core_model", "rationale": "string"}], '
+            '"method_stack": [{"method_id": "<a method_id from candidate_methods>", "role": "core_model", "rationale": "string"}], '
             '"assumptions": ["string"], "variable_definitions": ["string"], '
             '"mathematical_formulation": "string", '
             '"data_requirements": ["string"], "preprocessing_plan": ["string"], '
-            '"experiment_plan": ["string"], "baseline_plan": ["AdaBoost"], '
+            '"experiment_plan": ["string"], "baseline_plan": ["<a simpler baseline method>"], '
             '"robustness_plan": ["string"], "visualization_plan": ["string"], '
             '"expected_artifacts": ["metrics.json", "plot.png"], '
             '"estimated_runtime_seconds": 30.0, '
             '"implementation_risk": "low", "known_limitations": ["string"], '
-            '"fallback_plan": ["string"], "pilot_template": "classification"}\n'
+            '"fallback_plan": ["string"], "pilot_template": "<template matching problem_family>"}\n'
             "design_goal values: interpretability_first, performance_first, "
             "innovation_first, low_cost_first, robustness_first\n"
             "problem_family values: prediction, optimization, classification, "
@@ -226,8 +229,10 @@ PROMPTS: dict[str, PromptTemplate] = {
             "select a template inconsistent with the problem family",
         ],
         output_contract=(
-            "Output EXACTLY this JSON structure:\n"
-            '{"template": "classification", "model_kind": "qboost", "notes": "string"}\n'
+            "Output EXACTLY this JSON structure. The values are PLACEHOLDERS: set "
+            "template to match the selected strategy's problem_family and model_kind "
+            "to the chosen method_id — never copy the placeholders:\n"
+            '{"template": "<template matching the strategy family>", "model_kind": "<the selected method_id>", "notes": "string"}\n'
             "template MUST be one of: classification, regression, optimization"
         ),
     ),
@@ -270,7 +275,7 @@ PROMPTS: dict[str, PromptTemplate] = {
             '"required_table_ids": [], "required_citation_ids": [], '
             '"word_budget": 150, "human_review_required": false}, '
             '{"section_id": "methods", "title": "Methods", '
-            '"purpose": "Describe QBoost and QUBO formulation", '
+            '"purpose": "Describe the chosen model and its mathematical formulation", '
             '"required_claim_ids": [], "required_figure_ids": [], '
             '"required_table_ids": [], "required_citation_ids": [], '
             '"word_budget": 300, "human_review_required": false}], '
