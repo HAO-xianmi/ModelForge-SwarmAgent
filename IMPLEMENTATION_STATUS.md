@@ -110,14 +110,15 @@ _None yet._
 ### Phase G — Surfaces, examples, docs ✅
 - `api/` — FastAPI app: all spec §26 endpoints + structured errors + OpenAPI docs.
 - `cli/` — Typer CLI: init, create-run, upload, start, status, events, artifacts, checkpoints, resolve-checkpoint, export, **doctor**, **demo**.
-- `apps/web/` — Next.js console (New Run, Run Dashboard with checkpoints/metrics/tabs, Methods); typechecks + builds clean.
+- `apps/web/` — Next.js console: New Run, Run Dashboard (**React Flow workflow graph**, checkpoints, metrics, tabs), **Evidence Explorer** (`/runs/[id]/evidence`), **Runs/Benchmark dashboard** (`/benchmarks`), Methods; typechecks + builds clean (6 routes).
+- `GET /api/v1/runs` — runs-list endpoint (powers the Runs dashboard).
 - `examples/` — 3 deterministic examples (prediction/optimization/graph), runner, README; all run e2e.
 - `docs/` — architecture overview + workflow diagram + deployment guide.
 - `README.md`, `FINAL_VALIDATION_REPORT.md` finalized.
 
 ## Pending modules (future / out of MVP scope)
-- Benchmark suite (spec §39) — research-grade work.
-- Remaining frontend pages (React Flow graph, Monaco, Evidence Explorer, Benchmark Dashboard).
+- Benchmark suite (spec §39) — research-grade work (the `/benchmarks` page shows live runs; an orchestration harness over public problems is future work).
+- Monaco-based code/report viewer in the frontend.
 - Excel/image-assisted ingestion, research-paper retrieval (phase-two scope).
 
 ---

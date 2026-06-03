@@ -11,6 +11,15 @@ export interface RunSummary {
   total_runtime_seconds: number;
 }
 
+export interface RunListItem {
+  run_id: string;
+  mode: string;
+  status: string;
+  competition_profile_id: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
 export interface Checkpoint {
   checkpoint_id: string;
   kind: string;
@@ -58,6 +67,8 @@ export const api = {
       { method: "POST", body: fd },
     );
   },
+
+  listRuns: () => req<RunListItem[]>("/api/v1/runs"),
 
   start: (runId: string) =>
     req<RunSummary>(`/api/v1/runs/${runId}/start`, { method: "POST" }),

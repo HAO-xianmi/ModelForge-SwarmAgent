@@ -79,6 +79,24 @@ def create_run(req: CreateRunRequest, coord: Coordinator) -> CreateRunResponse:
     return CreateRunResponse(run_id=run.run_id, status=run.status.value)
 
 
+@app.get("/api/v1/runs")
+def list_runs(coord: Coordinator, limit: int = 100) -> list[dict]:
+    """List recent runs (newest first) — powers the runs overview dashboard."""
+    out: list[dict] = []
+    for run in coord.run_repo.list_runs(limit=limit):
+        out.append(
+            {
+                "run_id": run.run_id,
+                "mode": run.mode,
+                "status": run.status.value,
+                "competition_profile_id": run.competition_profile_id,
+                "created_at": run.created_at.isoformat(),
+                "completed_at": run.completed_at.isoformat() if run.completed_at else None,
+            }
+        )
+    return out
+
+
 @app.post("/api/v1/runs/{run_id}/files")
 async def upload_files(
     run_id: str, coord: Coordinator, files: list[UploadFile] = File(...)

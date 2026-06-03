@@ -49,6 +49,19 @@ def test_create_run(client) -> None:
     assert body["status"] == "CREATED"
 
 
+def test_list_runs(client) -> None:
+    # Empty initially, then reflects created runs (powers the runs dashboard).
+    assert client.get("/api/v1/runs").json() == []
+    rid = client.post("/api/v1/runs", json={"competition_profile_id": "practice"}).json()[
+        "run_id"
+    ]
+    listed = client.get("/api/v1/runs").json()
+    assert len(listed) == 1
+    assert listed[0]["run_id"] == rid
+    assert listed[0]["status"] == "CREATED"
+    assert "created_at" in listed[0]
+
+
 def test_methods_and_profiles_endpoints(client) -> None:
     r = client.get("/api/v1/methods")
     assert r.status_code == 200

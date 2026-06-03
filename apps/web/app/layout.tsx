@@ -24,6 +24,7 @@ export default function RootLayout({
               </Link>
               <nav className="flex gap-4 text-sm text-slate-600">
                 <Link href="/">New Run</Link>
+                <Link href="/benchmarks">Runs</Link>
                 <Link href="/methods">Methods</Link>
               </nav>
             </div>

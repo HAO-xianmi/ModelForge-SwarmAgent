@@ -1,8 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState } from "react";
-import { api, WORKFLOW_STAGES } from "@/lib/api";
+import { WorkflowGraph } from "@/components/WorkflowGraph";
+import { api } from "@/lib/api";
 
 const TERMINAL = ["COMPLETED", "FAILED", "CANCELLED"];
 
@@ -56,6 +58,12 @@ export default function RunDashboard({
           <StatusBadge status={status} />
         </div>
         <div className="flex gap-2">
+          <Link
+            href={`/runs/${runId}/evidence`}
+            className="rounded border px-4 py-2 text-sm"
+          >
+            Evidence Explorer
+          </Link>
           {!isTerminal && !pending && (
             <button
               onClick={() => start.mutate()}
@@ -75,7 +83,7 @@ export default function RunDashboard({
         </div>
       </div>
 
-      <ProgressGraph status={status} />
+      <WorkflowGraph status={status} />
 
       {pending && (
         <CheckpointCard
@@ -130,31 +138,6 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`mt-1 inline-block rounded px-2 py-0.5 text-xs ${color}`}>
       {status}
     </span>
-  );
-}
-
-function ProgressGraph({ status }: { status: string }) {
-  const idx = WORKFLOW_STAGES.indexOf(status);
-  return (
-    <div className="flex flex-wrap gap-1">
-      {WORKFLOW_STAGES.map((stage, i) => {
-        const done = idx >= 0 && i < idx;
-        const current = stage === status;
-        return (
-          <div
-            key={stage}
-            title={stage}
-            className={`h-2 flex-1 rounded ${
-              current
-                ? "bg-sky-500"
-                : done
-                  ? "bg-green-400"
-                  : "bg-slate-200"
-            }`}
-          />
-        );
-      })}
-    </div>
   );
 }
 

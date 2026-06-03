@@ -16,8 +16,9 @@ audit → evidence registration → evidence-constrained report → reproducibil
 bundle, with human checkpoints and a full audit trail.
 
 All quality gates pass: **ruff clean**, **mypy clean (101 source files)**,
-**136 tests passing** (unit + integration + e2e), Next.js frontend **builds
-clean**, Alembic migration **applies**, and the CLI `doctor`/`demo` commands run.
+**137 tests passing** (unit + integration + e2e), Next.js frontend **builds
+clean** (6 routes, incl. a React Flow workflow graph, Evidence Explorer, and Runs
+dashboard), Alembic migration **applies**, and the CLI `doctor`/`demo` run.
 
 ---
 
@@ -26,7 +27,7 @@ clean**, Alembic migration **applies**, and the CLI `doctor`/`demo` commands run
 ```text
 python -m ruff check src tests          → All checks passed
 python -m mypy                          → Success: no issues found in 101 source files
-python -m pytest tests -q               → 136 passed
+python -m pytest tests -q               → 137 passed
 alembic revision --autogenerate         → migration generated
 alembic upgrade head                    → applied (head)
 modelforge doctor                       → all required checks pass
@@ -38,7 +39,7 @@ cd apps/web && npx tsc --noEmit         → clean
 cd apps/web && npx next build           → compiled successfully (5 routes)
 ```
 
-## Passed tests (136 total)
+## Passed tests (137 total)
 
 | Suite | Count | Coverage |
 |---|---|---|
@@ -53,7 +54,7 @@ cd apps/web && npx next build           → compiled successfully (5 routes)
 | `test_codegen_execution.py` | 17 | **all 15 code templates execute for real** + determinism |
 | `test_experiment_pipeline.py` | 8 | pilot/formal/baseline/robustness/audit (real runs) |
 | `test_workflow_e2e.py` | 4 | **full e2e run**, contest 3-checkpoint flow, no fabricated metrics |
-| `test_api.py` | 7 | full HTTP run, contest checkpoint flow, ZIP download |
+| `test_api.py` | 8 | full HTTP run, runs list, contest checkpoint flow, ZIP download |
 | `test_cli.py` | 5 | create→upload→start→completed, doctor, demo |
 | `test_examples.py` | 3 | prediction/optimization/graph through the full workflow |
 
@@ -72,7 +73,7 @@ None.
 | 3 | Functional CLI (incl. `doctor`, `demo`) | ✅ |
 | 4 | Functional web interface (Next.js, builds clean) | ✅ |
 | 5 | Docker sandbox support | ✅ implemented · 🚫 unexecuted here (no daemon) |
-| 6 | Tests (unit + integration + e2e + security) | ✅ 136 passing |
+| 6 | Tests (unit + integration + e2e + security) | ✅ 137 passing |
 | 7 | Example problems | ✅ 3, all run e2e |
 | 8 | Documentation | ✅ docs/architecture, deployment |
 | 9 | README | ✅ |
@@ -97,7 +98,7 @@ None.
 | Docker sandbox execution | 🚫 unexecuted | No Docker daemon on the dev host | `DockerSandboxRunner` is fully implemented but its container path is not run here; subprocess runner is used | Run the `requires_docker` path on a host with Docker |
 | Remote citation verification | 🚫 unexecuted | Network/credentials | `CrossrefResolver` implemented; offline fallback to local structural verification is exercised | Provide network to verify DOIs remotely |
 | Real LLM providers | 🟡 | No key by default | OpenAI/Anthropic adapters implemented; mock is the deterministic default | Set `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` |
-| Frontend depth | 🟡 | Scope (backend-first depth) | New Run, Run Dashboard (progress/checkpoints/metrics/tabs), Methods built and building; React Flow / Monaco / Benchmark / Evidence-Explorer pages not built | Add the remaining spec §29 pages |
+| Frontend depth | 🟡 | Scope (backend-first depth) | Built: New Run, Run Dashboard (React Flow workflow graph + checkpoints/metrics/tabs), Evidence Explorer, Runs/Benchmark dashboard, Methods. A Monaco-based code/report viewer is not built | Add a Monaco viewer for code/report artifacts |
 | Benchmark suite (spec §39) | ⬜ | Out of MVP scope | Harness + 15–30 public problems + metrics/ablations | Phase-4 research work |
 | Excel/image ingestion, paper retrieval | ⬜ | Phase-two scope | xlsx profiling exists; image OCR + paper retrieval not built | Phase-two |
 
