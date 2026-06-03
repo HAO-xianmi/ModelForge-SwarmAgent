@@ -1,0 +1,31 @@
+{
+  "mean": 5.85,
+  "by_category": {
+    "forecasting": {
+      "final": 6.17,
+      "struct": 9.0,
+      "llm": 4.28,
+      "chars": 15763
+    },
+    "irrigation": {
+      "final": 6.18,
+      "struct": 9.08,
+      "llm": 4.25,
+      "chars": 21550
+    },
+    "network": {
+      "final": 5.67,
+      "struct": 8.82,
+      "llm": 3.57,
+      "chars": 16583
+    },
+    "topsis_evaluation": {
+      "final": 5.39,
+      "struct": 8.31,
+      "llm": 3.44,
+      "chars": 19379
+    }
+  },
+  "provider": "openai",
+  "n_judges": 2
+}

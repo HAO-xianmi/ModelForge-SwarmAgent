@@ -12,14 +12,15 @@ from modelforge.agents import (
     DomainAnalystAgent,
     MethodRetrieverAgent,
     PaperArchitectAgent,
-    PaperWriterAgent,
     ProblemParserAgent,
     SkepticAgent,
     StrategyJudgeAgent,
     StrategyProposerAgent,
 )
 from modelforge.agents.base import AgentContext
+from modelforge.agents.competition_writer import CompetitionWriterAgent
 from modelforge.agents.debugger import DebuggerAgent
+from modelforge.agents.red_team import RedTeamAgent
 from modelforge.common.errors import FailureType, ModelForgeError
 from modelforge.common.logging import get_logger
 from modelforge.graph.deps import WorkflowDeps
@@ -341,13 +342,33 @@ def write_report(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
     ctx = deps.agent_context(state.run_id)
     claim_index = {c.claim_id: c for c in state.evidence_claims}
     section_texts: dict[str, str] = {}
-    writer = PaperWriterAgent(ctx)
+    writer = CompetitionWriterAgent(ctx)
     card = state.problem_card
     assumptions = card.assumptions_to_confirm if card else []
     variables = (card.variables or card.decision_variables) if card else []
+    # Slice 4: match each sub-problem section to its best-fit domain model so the
+    # writer (real provider) weaves the right governing equations in. Under the
+    # mock provider the writer emits the same clean scaffolding (no regression).
+    sub_to_dm: dict[str, dict] = {}
+    if card:
+        from modelforge.services.method_library.domain_models import (
+            get_domain_model_library,
+        )
+
+        kb = get_domain_model_library()
+        for sp in card.subproblems:
+            hits = kb.retrieve(sp.statement, None, top_k=1)
+            if hits:
+                sub_to_dm[sp.sub_id] = hits[0].model_dump()
     for section in state.report_outline.sections:
+        dm = (
+            sub_to_dm.get(section.section_id.replace("model_", ""))
+            if section.section_id.startswith("model_")
+            else None
+        )
         res = writer.write_section(
-            section, claim_index, assumptions=assumptions, variables=variables
+            section, claim_index, assumptions=assumptions, variables=variables,
+            domain_model=dm,
         )
         if res.ok and res.output is not None:
             section_texts[section.section_id] = res.output.text
@@ -362,11 +383,21 @@ def verify_citations(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
 
 
 def run_judge_panel(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
-    # Lightweight final gate: ensure verified evidence exists and no blocking
-    # issues remain. (A full multi-judge panel is a future extension.)
+    # Final gate: verified evidence must exist, and the adversarial RedTeam reviews
+    # the assembled draft (Slice 4: the "full panel" the stub promised). Advisory
+    # in-workflow — findings are logged; a future slice can hard-gate export.
     if not state.verified_claims():
-        # No verified evidence -> needs human review, but not a hard fail.
         _log.warning("judge panel: no verified claims for run %s", state.run_id)
+    draft = "\n\n".join(state.section_texts.values())
+    if draft.strip():
+        ctx = deps.agent_context(state.run_id)
+        rt = RedTeamAgent(ctx).review(draft)
+        _record_calls(state, ctx)
+        if rt.ok and rt.output is not None:
+            _log.info(
+                "red-team: verdict=%s findings=%d", rt.output.verdict,
+                len(rt.output.findings),
+            )
     return RunStatus.WAITING_FOR_CHECKPOINT_3
 
 

@@ -7,6 +7,18 @@ Records important decisions and deviations from the architecture spec
 
 ## Phase H — Quality rebuild (benchmark-gated)
 
+### D-H7: Wire the rebuilt components into the live workflow, mock-safe
+**Decision:** `write_report` now uses CompetitionWriterAgent + per-sub-problem
+domain-model matching; `run_judge_panel` runs the RedTeam adversarial gate
+(advisory in-workflow). Because the mock CompetitionWriter dispatches to the same
+clean scaffolding as the mock PaperWriter, the 44 integration/e2e tests are
+unchanged — the upgrade only manifests with a real provider.
+**Why:** Slices 1-3 proved the rebuilt report path on the benchmark harness;
+Slice 4 makes real `modelforge` runs actually produce those domain-grounded,
+red-teamed reports. Keeping the swap mock-identical avoids e2e regression while
+delivering the live improvement. A future slice can hard-gate export on a RedTeam
+BLOCKER and wire CompetitionJudge into the panel with stored state fields.
+
 ### D-H6: Sub-problem-aware content matching is keyword-dominant, decoupled from the tournament
 **Decision:** Each report section's CONTENT domain model is chosen by keyword-
 dominant retrieval on that SUB-PROBLEM's statement (family overlap down-weighted

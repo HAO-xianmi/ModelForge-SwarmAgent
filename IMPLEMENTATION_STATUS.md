@@ -47,9 +47,18 @@ benchmark scores; nothing is claimed improved without a benchmark number.
 
 **Slice 3 benchmark (mock generate harness):** mean **8.12** —
 forecasting 8.69, irrigation/network 7.96, topsis 7.86. Progression:
-7.48 (Slice 2) → 7.65 (+ assumptions) → **8.12** (+ citations). Real-judge
-irrigation: weak 0.77 → mock-writer 5.55 → real CompetitionWriter **6.55**.
-Multi-category real-judge benchmark recorded in `benchmark/results/slice3_real.json`.
+7.48 (Slice 2) → 7.65 (+ assumptions) → **8.12** (+ citations).
+
+**Slice 3 multi-category REAL-judge benchmark (DeepSeek, n=2; the headline
+result):** forecasting 6.17, irrigation 6.18, network 5.67, topsis 5.39 →
+**mean 5.85** (struct 8.3–9.1, content 3.4–4.3, 15–21k-char papers). vs the
+original weak output's **0.77**. Recorded in `benchmark/results/slice3_real.json`.
+
+| Slice 4 — wire rebuilt components into the LIVE workflow | ✅ | `write_report` → CompetitionWriter + per-sub-problem domain match; `run_judge_panel` → RedTeam adversarial gate (advisory) |
+
+Slice 4 is mock-safe (the mock CompetitionWriter = clean scaffolding, so the 44
+integration/e2e tests are unchanged) and upgrades real `modelforge` runs to
+domain-grounded, red-teamed reports.
 
 **Slice 3a real-judge validation (irrigation, DeepSeek):** mock-writer **5.55**
 → real CompetitionWriter **6.55** (**+1.00**); content/LLM layer 3.82 → **4.86**,
