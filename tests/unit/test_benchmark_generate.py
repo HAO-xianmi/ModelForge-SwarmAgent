@@ -44,3 +44,13 @@ def test_generate_extracts_subproblems_from_problem_text():
         MockProvider(),
     )
     assert "Sub-problem P1" in md and "Sub-problem P2" in md
+
+
+def test_generated_report_has_references_and_exports_to_latex():
+    from modelforge.services.report.builder import ReportBuilder
+    md, _ = generate_report_for_slug("irrigation", MockProvider(), _ROOT)
+    assert "## References" in md  # citation tracking
+    tex = ReportBuilder().build_latex("Irrigation", md, [])
+    # LaTeX export is compilable-shaped and leak-free.
+    assert r"\documentclass" in tex and r"\section*{" in tex
+    assert "claim_" not in tex

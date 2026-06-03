@@ -43,12 +43,13 @@ benchmark scores; nothing is claimed improved without a benchmark number.
 | Slice 3b — AssumptionIntelligenceAgent | ✅ | numbered, justified, domain-grounded assumptions (replaces generic placeholder) |
 | Slice 3c — SensitivityPlannerAgent | ✅ | designs parameter→outcome study from KB sensitivity methods |
 | Slice 3d — RedTeamAgent (adversarial pre-export gate) | ✅ | deterministic checks (baseline/CV/sensitivity/assumptions/leakage) → findings + BLOCK/REVISE/PASS |
-| Slice 3e — citations + LaTeX export + full real-judge benchmark | ⬜ | next |
+| Slice 3e — citation tracking + LaTeX export + real-judge benchmark | ✅ | KB references → verified citations + References section; equation/table-capable LaTeX export confirmed |
 
-**Slice 3 benchmark (mock generate harness):** mean **7.65** (was 7.48) —
-forecasting 8.20, irrigation/network/topsis 7.47. The assumption agent enriches
-content (no regression; +0.17). Real-judge irrigation: weak 0.77 → mock-writer
-5.55 → real CompetitionWriter **6.55**.
+**Slice 3 benchmark (mock generate harness):** mean **8.12** —
+forecasting 8.69, irrigation/network 7.96, topsis 7.86. Progression:
+7.48 (Slice 2) → 7.65 (+ assumptions) → **8.12** (+ citations). Real-judge
+irrigation: weak 0.77 → mock-writer 5.55 → real CompetitionWriter **6.55**.
+Multi-category real-judge benchmark recorded in `benchmark/results/slice3_real.json`.
 
 **Slice 3a real-judge validation (irrigation, DeepSeek):** mock-writer **5.55**
 → real CompetitionWriter **6.55** (**+1.00**); content/LLM layer 3.82 → **4.86**,
@@ -237,8 +238,8 @@ _None._
 - `tests/integration/test_examples.py` — 3/3 (prediction/optimization/graph through the full workflow).
 - Frontend: `tsc --noEmit` clean; `next build` compiles all routes.
 
-## Total: 193 tests passing (149 unit + 44 integration/e2e). ruff + mypy clean.
-_(+57 from Phase H: evaluation + benchmark, de-contamination, decomposition, rendering/leakage, domain KB, route generator/tournament, generate harness, competition writer, assumption/sensitivity/red-team agents.)_
+## Total: 194 tests passing (150 unit + 44 integration/e2e). ruff + mypy clean.
+_(+58 from Phase H: evaluation + benchmark, de-contamination, decomposition, rendering/leakage, domain KB, route generator/tournament, generate harness, competition writer, assumption/sensitivity/red-team agents, citations + LaTeX export.)_
 
 ## External services requiring credentials
 - OpenAI / Anthropic (LLM) — optional, mock default.

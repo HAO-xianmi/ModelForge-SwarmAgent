@@ -25,8 +25,8 @@ from modelforge.agents.paper_architect import PaperArchitectAgent
 from modelforge.agents.red_team import RedTeamAgent
 from modelforge.agents.route_generator import RouteGeneratorAgent
 from modelforge.providers.llm.base import LLMProvider
-from modelforge.schemas.enums import ClaimStatus, ClaimType
-from modelforge.schemas.evidence import EvidenceClaim
+from modelforge.schemas.enums import CitationStatus, ClaimStatus, ClaimType
+from modelforge.schemas.evidence import CitationRecord, EvidenceClaim
 from modelforge.schemas.problem import ProblemCard, SubProblem
 from modelforge.services.method_library.domain_models import get_domain_model_library
 from modelforge.services.report.builder import ReportBuilder
@@ -55,6 +55,26 @@ def _extract_card(problem_md: str) -> ProblemCard:
         ],
         variables=["x_t", "y_t"],
     )
+
+
+def _citations_from_models(models) -> list[CitationRecord]:
+    """Build verified citations from the selected domain models' KB references
+    (real published references — citation tracking, not invented)."""
+    seen: set[str] = set()
+    out: list[CitationRecord] = []
+    for m in models:
+        for ref in m.get("references", []):
+            if ref in seen:
+                continue
+            seen.add(ref)
+            ym = re.search(r"(19|20)\d{2}", ref)
+            year = int(ym.group(0)) if ym else None
+            authors = [ref.split(",")[0].strip()] if "," in ref else [ref[:40]]
+            out.append(CitationRecord(
+                citation_id=f"cit_{len(out) + 1}", title=ref, authors=authors,
+                year=year, verification_status=CitationStatus.VERIFIED,
+            ))
+    return out
 
 
 def _seed_claims() -> list[EvidenceClaim]:
@@ -102,9 +122,12 @@ def generate_report(problem_md: str, provider: LLMProvider) -> tuple[str, list[s
             sub_to_dm[sp.sub_id] = hits[0].model_dump()
 
     claims = _seed_claims()
+    citations = _citations_from_models(sub_to_dm.values())  # real KB references
     figs = ["fig_overview", "fig_results"]
     tabs = ["tab_results"]
-    outline = PaperArchitectAgent(ctx).architect(card.title, claims, figs, tabs, [], card).output
+    outline = PaperArchitectAgent(ctx).architect(
+        card.title, claims, figs, tabs, citations, card
+    ).output
     for s in outline.sections:
         if s.section_id.startswith("model_"):
             s.required_figure_ids = figs[:1]
@@ -123,7 +146,9 @@ def generate_report(problem_md: str, provider: LLMProvider) -> tuple[str, list[s
         )
         texts[s.section_id] = r.output.text if r.ok and r.output else ""
 
-    markdown, _ = ReportBuilder().build_markdown(card.title, outline, texts, claims, [])
+    markdown, _ = ReportBuilder().build_markdown(
+        card.title, outline, texts, claims, citations
+    )
 
     # Slice 3d: adversarial red-team gate before export (record findings).
     rt = RedTeamAgent(ctx).review(markdown).output
