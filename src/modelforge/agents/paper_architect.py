@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from modelforge.agents.base import AgentResult, BaseAgent
 from modelforge.schemas.evidence import CitationRecord, EvidenceClaim
+from modelforge.schemas.problem import ProblemCard
 from modelforge.schemas.report import ReportOutline
 
 
@@ -24,15 +25,34 @@ class PaperArchitectAgent(BaseAgent[ReportOutline]):
         figure_ids: list[str],
         table_ids: list[str],
         citations: list[CitationRecord],
+        problem_card: ProblemCard | None = None,
     ) -> AgentResult[ReportOutline]:
         claim_ids = [c.claim_id for c in verified_claims]
         citation_ids = [c.citation_id for c in citations if c.includable_in_report]
+        # Thread the problem decomposition through so the outline addresses each
+        # sub-problem with its own model section (instead of a generic skeleton).
+        subproblems = (
+            [
+                {"sub_id": sp.sub_id, "statement": sp.statement, "objective": sp.objective}
+                for sp in problem_card.subproblems
+            ]
+            if problem_card
+            else []
+        )
         context = {
             "title": title,
             "claim_ids": claim_ids,
             "figure_ids": figure_ids,
             "table_ids": table_ids,
             "citation_ids": citation_ids,
+            "subproblems": subproblems,
+            "assumptions": problem_card.assumptions_to_confirm if problem_card else [],
+            "variables": (
+                (problem_card.variables or problem_card.decision_variables)
+                if problem_card
+                else []
+            ),
+            "objectives": problem_card.objectives if problem_card else [],
         }
         result = self.run_structured(context, temperature=0.2)
         if result.ok and result.output is not None:

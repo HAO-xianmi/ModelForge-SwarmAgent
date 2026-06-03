@@ -21,9 +21,18 @@ from modelforge.schemas.evaluation import PaperDocument, StructuralMetrics
 # Detectors (return match lists so we can expose example evidence spans)
 # --------------------------------------------------------------------------- #
 
+# Match a distinct sub-problem IDENTIFIER (not just the word) so that four
+# "Sub-problem P1..P4" headings count as four, not one. Chinese 问题一..四 are
+# already distinct strings; this also handles English P1/Q1/Problem 1/Part 1/sub_1.
 _SUBPROBLEM = re.compile(
-    r"(?:问题[一二三四五六七八]|针对问题[一二三四五六七八]?|子问题|"
-    r"\bproblem\s*\d|\bpart\s*[1-9]\b|\bsub[-_ ]?problem\b|\bQ[1-9]\b|\bsub_\d)",
+    r"问题[一二三四五六七八]"
+    r"|针对问题[一二三四五六七八]"
+    r"|\bsub[-_ ]?problem\s*[A-Za-z]?\d+"
+    r"|\bproblem\s*\d+"
+    r"|\bpart\s*\d+"
+    r"|\bQ\d+\b"
+    r"|\bP\d+\b"
+    r"|\bsub_\d+",
     re.IGNORECASE,
 )
 _EQUATION = re.compile(

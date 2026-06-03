@@ -328,25 +328,56 @@ def _mock_paper_architect(context: dict, prompt: str) -> dict:
     figure_ids = context.get("figure_ids", [])
     table_ids = context.get("table_ids", [])
     citation_ids = context.get("citation_ids", [])
+    subproblems = context.get("subproblems", [])
+    # Competition structure: abstract, restatement, assumptions, nomenclature,
+    # one model section PER sub-problem, sensitivity, conclusion, limitations.
     sections = [
-        {"section_id": "abstract", "title": "Abstract", "purpose": "summary",
-         "required_claim_ids": claim_ids[:2], "word_budget": 150, "human_review_required": False},
-        {"section_id": "problem", "title": "Problem Restatement", "purpose": "restate",
+        {"section_id": "abstract", "title": "Abstract",
+         "purpose": "summarize the methods and key quantitative results",
+         "required_claim_ids": claim_ids[:2], "word_budget": 200},
+        {"section_id": "restatement", "title": "Problem Restatement and Analysis",
+         "purpose": "restate the problem and decompose it into its sub-problems",
+         "word_budget": 250},
+        {"section_id": "assumptions", "title": "Model Assumptions",
+         "purpose": "state the load-bearing assumptions and justify each",
          "word_budget": 200},
-        {"section_id": "methods", "title": "Model Construction", "purpose": "describe model",
-         "required_citation_ids": citation_ids[:3], "word_budget": 300},
-        {"section_id": "results", "title": "Experimental Results", "purpose": "report results",
-         "required_claim_ids": claim_ids, "required_figure_ids": figure_ids,
-         "required_table_ids": table_ids, "word_budget": 350},
-        {"section_id": "robustness", "title": "Sensitivity and Robustness Analysis",
-         "purpose": "stability", "required_claim_ids": claim_ids, "word_budget": 250},
+        {"section_id": "nomenclature", "title": "Nomenclature and Symbol Definitions",
+         "purpose": "define every variable and its units", "word_budget": 150},
+    ]
+    if subproblems:
+        for i, sp in enumerate(subproblems):
+            sid = sp.get("sub_id") or f"P{i + 1}"
+            stmt = (sp.get("statement") or "").strip()
+            sections.append({
+                "section_id": f"model_{sid}",
+                "title": f"Sub-problem {sid} Model: {stmt[:48]}",
+                "purpose": f"establish and solve the model for sub-problem {sid}; "
+                           f"objective: {(sp.get('objective') or '')[:80]}",
+                "required_claim_ids": claim_ids,
+                "required_figure_ids": figure_ids,
+                "required_table_ids": table_ids,
+                "required_citation_ids": citation_ids[:2],
+                "word_budget": 350,
+            })
+    else:
+        sections.append({
+            "section_id": "model", "title": "Model Construction and Solution",
+            "purpose": "establish and solve the model",
+            "required_claim_ids": claim_ids, "required_figure_ids": figure_ids,
+            "required_table_ids": table_ids, "required_citation_ids": citation_ids[:3],
+            "word_budget": 350})
+    sections += [
+        {"section_id": "sensitivity", "title": "Sensitivity and Robustness Analysis",
+         "purpose": "vary key parameters and report the parameter-to-outcome relationship",
+         "required_claim_ids": claim_ids, "word_budget": 250},
         {"section_id": "conclusion", "title": "Conclusions", "purpose": "wrap up",
-         "word_budget": 200},
-        {"section_id": "limitations", "title": "Limitations", "purpose": "limits",
-         "word_budget": 150, "human_review_required": True},
+         "word_budget": 180},
+        {"section_id": "limitations", "title": "Strengths, Weaknesses and Limitations",
+         "purpose": "honest evaluation of the model", "word_budget": 180,
+         "human_review_required": True},
     ]
     return {"sections": sections, "title": context.get("title", "Modeling Report"),
-            "template": context.get("template", "generic")}
+            "template": context.get("template", "competition")}
 
 
 def _mock_paper_writer(context: dict, prompt: str) -> dict:

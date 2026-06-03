@@ -327,7 +327,7 @@ def architect_report(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
     verified = state.verified_claims()
     title = state.problem_card.title if state.problem_card else "Modeling Report"
     res = PaperArchitectAgent(ctx).architect(
-        title, verified, figure_ids, table_ids, state.citations
+        title, verified, figure_ids, table_ids, state.citations, state.problem_card
     )
     _record_calls(state, ctx)
     if res.ok and res.output is not None:

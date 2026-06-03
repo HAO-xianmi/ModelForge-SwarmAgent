@@ -260,26 +260,37 @@ PROMPTS: dict[str, PromptTemplate] = {
         agent_name="PaperArchitectAgent",
         version="1.0.1",
         system=(
-            "You design the report outline. No section may request unsupported "
-            "claims; reference only claim/figure/table/citation ids that exist."
+            "You design a COMPETITION-PAPER outline. The outline MUST contain: an "
+            "abstract; a problem restatement; a model-assumptions section; a "
+            "nomenclature/symbol-definitions section; ONE model section for EACH "
+            "sub-problem in the context (titled so the sub-problem is identifiable); "
+            "a sensitivity/robustness section; a conclusion; and a "
+            "strengths/weaknesses/limitations section. No section may request "
+            "unsupported claims; reference only claim/figure/table/citation ids "
+            "that exist in the context."
         ),
         forbidden=[
             "reference claim ids that are not verified",
             "request unsupported claims",
+            "collapse multiple sub-problems into a single generic model section",
         ],
         output_contract=(
-            "Output EXACTLY this JSON structure (field name is 'purpose' NOT 'description'):\n"
+            "Output EXACTLY this JSON structure (field name is 'purpose' NOT 'description'). "
+            "Emit one 'model_<sub_id>' section per sub-problem in the context:\n"
             '{"sections": [{"section_id": "abstract", "title": "Abstract", '
-            '"purpose": "Brief summary of the paper", '
+            '"purpose": "Summarize methods and key quantitative results", '
             '"required_claim_ids": [], "required_figure_ids": [], '
             '"required_table_ids": [], "required_citation_ids": [], '
-            '"word_budget": 150, "human_review_required": false}, '
-            '{"section_id": "methods", "title": "Methods", '
-            '"purpose": "Describe the chosen model and its mathematical formulation", '
+            '"word_budget": 200, "human_review_required": false}, '
+            '{"section_id": "assumptions", "title": "Model Assumptions", '
+            '"purpose": "State and justify load-bearing assumptions", '
+            '"word_budget": 200, "human_review_required": false}, '
+            '{"section_id": "model_P1", "title": "Sub-problem P1 Model", '
+            '"purpose": "Establish and solve the model for sub-problem P1", '
             '"required_claim_ids": [], "required_figure_ids": [], '
             '"required_table_ids": [], "required_citation_ids": [], '
-            '"word_budget": 300, "human_review_required": false}], '
-            '"title": "string", "template": "generic"}'
+            '"word_budget": 350, "human_review_required": false}], '
+            '"title": "string", "template": "competition"}'
         ),
     ),
     "paper_writer": _p(
