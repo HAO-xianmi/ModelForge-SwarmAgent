@@ -342,8 +342,13 @@ def write_report(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
     claim_index = {c.claim_id: c for c in state.evidence_claims}
     section_texts: dict[str, str] = {}
     writer = PaperWriterAgent(ctx)
+    card = state.problem_card
+    assumptions = card.assumptions_to_confirm if card else []
+    variables = (card.variables or card.decision_variables) if card else []
     for section in state.report_outline.sections:
-        res = writer.write_section(section, claim_index)
+        res = writer.write_section(
+            section, claim_index, assumptions=assumptions, variables=variables
+        )
         if res.ok and res.output is not None:
             section_texts[section.section_id] = res.output.text
     _record_calls(state, ctx)

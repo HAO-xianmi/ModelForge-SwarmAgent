@@ -32,15 +32,25 @@ benchmark scores; nothing is claimed improved without a benchmark number.
 | Benchmark suite: irrigation, topsis_evaluation, network, forecasting | ✅ | `benchmark/problems/` |
 | `modelforge benchmark calibrate \| evaluate \| list` | ✅ | `cli/benchmark_cli.py` |
 | Rebuild Slice 1a — de-contaminate prompt contracts (root cause #3) | ✅ | removed qboost/QUBO/AdaBoost few-shot + regression guard |
-| Rebuild Slice 1b — thread subproblems through to writer | ⬜ | in progress |
-| Rebuild Slice 1c — equation/table renderer + assumptions/symbol/sensitivity | ⬜ | pending |
-| Rebuild Slice 1 measure — run irrigation, score new vs weak (1.12) | ⬜ | pending (real-LLM workflow run) |
+| Rebuild Slice 1b — thread subproblems into outline (root cause #1) | ✅ | per-subproblem `model_<id>` sections + assumptions/nomenclature/sensitivity; detector counts distinct ids |
+| Rebuild Slice 1c — equation/table renderer + assumptions/symbol/sensitivity content; no claim-token leakage | ✅ | LaTeX renders math/tables/subsections; section-aware writer; sweep strips leaked ids |
+| **Rebuild Slice 1 measure — irrigation rebuilt report vs weak (1.12)** | ✅ | **OLD 1.12 → NEW 8.20 (+7.08)**, mock judge |
 | Slices 2–3 — route tournament, domain-model KB, competition agents, red team | ⬜ | pending |
 
 **Benchmark deltas (record per slice):**
 - Baseline (pre-rebuild generated paper, `report.pdf`): **1.12 / 10**.
 - After Slice 1a: instrument stable at 7.91 separation (de-contamination affects
   generated output, measured at end of Slice 1, not the static corpus).
+- After Slice 1b: generated-paper *skeleton* now detects 4 sub-problems (was 0).
+- **After Slice 1c (end of Slice 1): rebuilt irrigation report = 8.20 / 10 vs
+  weak baseline 1.12 → delta +7.08** (mock judge). New report has 4 sub-problems,
+  18 equations, 3 tables, 4 figures, 3 assumptions, a symbol table, a sensitivity
+  section, and ZERO leaked claim tokens. Gate unchanged (award 9.03/9.59, weak
+  1.12, separation 7.91).
+  - **Caveat:** measured with the deterministic mock judge + mock writer, so this
+    captures the structural/format transformation, leakage fix, and scaffolding —
+    NOT genuine modeling depth/innovation, which require a real-LLM run and the
+    domain-model KB (Slices 2–3). Real-provider re-measurement is the next gate.
 
 ---
 
@@ -194,8 +204,8 @@ _None._
 - `tests/integration/test_examples.py` — 3/3 (prediction/optimization/graph through the full workflow).
 - Frontend: `tsc --noEmit` clean; `next build` compiles all routes.
 
-## Total: 154 tests passing (110 unit + 44 integration/e2e). ruff + mypy clean.
-_(+18 from Phase H: evaluation structural, benchmark calibration/repeatability, prompt de-contamination guard.)_
+## Total: 166 tests passing (122 unit + 44 integration/e2e). ruff + mypy clean.
+_(+30 from Phase H: evaluation structural, benchmark calibration/repeatability, prompt de-contamination guard, paper-architect decomposition, report rendering + leakage.)_
 
 ## External services requiring credentials
 - OpenAI / Anthropic (LLM) — optional, mock default.

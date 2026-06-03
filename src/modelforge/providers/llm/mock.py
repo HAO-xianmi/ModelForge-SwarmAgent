@@ -381,14 +381,74 @@ def _mock_paper_architect(context: dict, prompt: str) -> dict:
 
 
 def _mock_paper_writer(context: dict, prompt: str) -> dict:
-    # The writer composes prose deterministically from verified claims; the mock
-    # returns short paragraph text keyed by section. Real verified numbers are
-    # injected by the writer agent, not invented here.
+    # Section-aware deterministic prose. Numbers come ONLY from verified claims
+    # (cited via [claim:id]); the structural scaffolding (assumptions, symbol
+    # table, equations, sensitivity table) is generated so the report reads like
+    # a competition paper even under the keyless mock. Real providers replace
+    # this with genuine modeling prose.
     section_id = context.get("section_id", "section")
+    sid = section_id.lower()
     claims = context.get("claims", [])  # [{statement, claim_id}]
-    body = " ".join(
-        f"{c['statement']} [claim:{c['claim_id']}]" for c in claims
-    ) or "This section summarizes the relevant analysis."
+    assumptions = context.get("assumptions", [])
+    variables = context.get("variables", [])
+    claim_text = " ".join(f"{c['statement']} [claim:{c['claim_id']}]" for c in claims)
+
+    if "assumption" in sid:
+        items = assumptions or [
+            "the provided data is representative of the operating conditions",
+            "the governing relationships are stable over the modeling horizon",
+            "measurement noise is unbiased",
+        ]
+        body = "We adopt the following load-bearing assumptions. " + " ".join(
+            f"Assumption {i + 1}: {a}." for i, a in enumerate(items)
+        )
+    elif "nomenclature" in sid or "symbol" in sid:
+        rows = "\n".join(f"| ${v}$ | quantity {v} | - |" for v in (variables or ["x", "y", "t"]))
+        body = (
+            "Table 1 defines the notation used throughout.\n\n"
+            "| Symbol | Description | Units |\n|---|---|---|\n" + rows
+        )
+    elif "sensitivity" in sid:
+        body = (
+            "We conduct a sensitivity analysis by perturbing the key parameter "
+            "across its plausible range and recording the response. "
+            + (claim_text or "The objective varies monotonically with the parameter, "
+               "indicating a stable parameter-to-outcome relationship.")
+            + "\n\nTable 2 reports the sensitivity sweep.\n\n"
+            "| Parameter | -20% | baseline | +20% |\n|---|---|---|---|\n"
+            "| key parameter | lower response | reference | upper response |"
+        )
+    elif sid.startswith("model"):
+        body = (
+            (claim_text or "We establish and solve the model for this sub-problem.")
+            + " The governing relation is\n\n$$\ny = a \\cdot x + b\n$$\n\n"
+            "and is solved to obtain the reported quantitative results."
+        )
+    elif sid == "abstract":
+        body = (
+            "This paper decomposes the problem into its sub-problems and solves "
+            "each with a tailored model, validating results against a baseline. "
+            + claim_text
+        )
+    elif "restatement" in sid:
+        body = (
+            "We restate the problem and decompose it into its constituent "
+            "sub-problems, whose outputs feed one another in sequence."
+        )
+    elif "limitation" in sid:
+        body = (
+            "Strengths: the framework is modular, evidence-grounded, and validated "
+            "against a baseline. Weaknesses: the simplifying assumptions may not "
+            "hold under all regimes, and the analysis covers a single season; "
+            "multi-year validation is left for future work."
+        )
+    elif "conclusion" in sid:
+        body = (
+            "We conclude that the decomposed models jointly address the problem; "
+            + (claim_text or "the results are consistent and defensible.")
+        )
+    else:
+        body = claim_text or "This section summarizes the relevant analysis."
     return {"section_id": section_id, "text": body}
 
 

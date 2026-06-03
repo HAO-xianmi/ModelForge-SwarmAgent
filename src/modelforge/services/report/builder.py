@@ -20,6 +20,13 @@ from modelforge.schemas.report import (
 )
 
 _CLAIM_REF = re.compile(r"\[claim:([a-zA-Z0-9_]+)\]")
+# Defense-in-depth: strip any internal id a model may have written into prose.
+_LEAK = re.compile(r"\[?\bclaim_[0-9a-fA-F]{4,}\b\]?|\[ev:[^\]]*\]|\[claim:[^\]]*\]")
+
+
+def _strip_leaked_tokens(text: str) -> str:
+    text = _LEAK.sub("", text)
+    return re.sub(r"[ \t]{2,}", " ", text).replace(" .", ".").replace(" ,", ",")
 
 
 class ReportBuilder:
@@ -78,24 +85,33 @@ class ReportBuilder:
         claim_index: dict[str, EvidenceClaim],
         claim_map: list[ClaimMapEntry],
     ) -> str:
-        """Replace [claim:id] refs: verified -> footnote marker; else flag."""
+        """Replace [claim:id] refs with clean, sequential evidence markers.
+
+        A verified ref becomes ``[E1]``/``[E2]`` (reader-facing, no internal id)
+        and is recorded in the claim map; an unverified ref is dropped (the writer
+        must not cite unverified claims). A final sweep removes any raw claim id a
+        model may have emitted in prose, so internal tokens never leak (the
+        original report.pdf leaked ``claim_efa52f7c7a6b`` into the body)."""
+        counter = {"n": 0}
+        seen: dict[str, str] = {}
 
         def _repl(m: re.Match[str]) -> str:
             cid = m.group(1)
             if cid in usable_ids:
-                claim = claim_index[cid]
-                claim_map.append(
-                    ClaimMapEntry(
-                        section_id=section.section_id,
-                        claim_id=cid,
-                        evidence_artifact_ids=claim.artifact_ids,
+                if cid not in seen:
+                    counter["n"] += 1
+                    seen[cid] = f"[E{counter['n']}]"
+                    claim_map.append(
+                        ClaimMapEntry(
+                            section_id=section.section_id,
+                            claim_id=cid,
+                            evidence_artifact_ids=claim_index[cid].artifact_ids,
+                        )
                     )
-                )
-                return f"[ev:{cid}]"
-            # Unsupported claim reference — strip the number, flag for review.
-            return "[UNVERIFIED — needs human review]"
+                return seen[cid]
+            return ""  # unverified reference dropped
 
-        return _CLAIM_REF.sub(_repl, text)
+        return _strip_leaked_tokens(_CLAIM_REF.sub(_repl, text))
 
     def build_latex(
         self,
@@ -129,7 +145,16 @@ class ReportBuilder:
 # LaTeX helpers
 # --------------------------------------------------------------------------- #
 _LATEX_TEMPLATE = r"""\documentclass[11pt]{{article}}
+\usepackage{{iftex}}
+\ifPDFTeX
 \usepackage[utf8]{{inputenc}}
+\else
+\usepackage{{fontspec}}
+\IfFileExists{{xeCJK.sty}}{{%
+  \usepackage{{xeCJK}}
+  \IfFontExistsTF{{SimSun}}{{\setCJKmainfont{{SimSun}}}}{{\setCJKmainfont{{Microsoft YaHei}}}}
+}}{{}}
+\fi
 \usepackage{{graphicx}}
 \usepackage{{amsmath}}
 \usepackage{{hyperref}}
@@ -151,21 +176,111 @@ def _tex_escape(text: str) -> str:
     return "".join(repl.get(c, c) for c in text)
 
 
-def _markdown_to_latex(markdown: str) -> str:
+def _render_inline(text: str) -> str:
+    """Escape text for LaTeX but PRESERVE inline ``$...$`` math segments."""
+    parts = text.split("$")
     out: list[str] = []
-    for line in markdown.splitlines():
-        if line.startswith("## "):
-            out.append(r"\section*{" + _tex_escape(line[3:]) + "}")
+    for i, seg in enumerate(parts):
+        out.append(f"${seg}$" if i % 2 == 1 else _tex_escape(seg))
+    return "".join(out)
+
+
+def _is_table_row(line: str) -> bool:
+    s = line.strip()
+    return s.startswith("|") and s.endswith("|") and s.count("|") >= 2
+
+
+def _is_table_separator(line: str) -> bool:
+    cells = [c.strip() for c in line.strip().strip("|").split("|")]
+    return bool(cells) and all(c and set(c) <= set("-: ") and "-" in c for c in cells)
+
+
+def _split_row(line: str) -> list[str]:
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
+def _render_table(block: list[str]) -> list[str]:
+    parsed = [_split_row(r) for r in block if not _is_table_separator(r)]
+    if not parsed:
+        return []
+    ncol = max(len(r) for r in parsed)
+    out = [r"\begin{table}[h]\centering",
+           r"\begin{tabular}{" + "l" * ncol + "}", r"\hline"]
+    for ri, cells in enumerate(parsed):
+        cells = cells + [""] * (ncol - len(cells))
+        out.append(" & ".join(_render_inline(c) for c in cells) + r" \\")
+        if ri == 0:
+            out.append(r"\hline")
+    out += [r"\hline", r"\end{tabular}", r"\end{table}"]
+    return out
+
+
+def _markdown_to_latex(markdown: str) -> str:
+    """Render a competition report's markdown to compilable LaTeX, including
+    equations (inline ``$...$`` and display ``$$``), markdown tables, headings,
+    subsections, figures, and lists."""
+    lines = markdown.splitlines()
+    out: list[str] = []
+    i, n = 0, len(lines)
+    in_itemize = False
+
+    def close_itemize() -> None:
+        nonlocal in_itemize
+        if in_itemize:
+            out.append(r"\end{itemize}")
+            in_itemize = False
+
+    while i < n:
+        line = lines[i]
+        stripped = line.strip()
+
+        if stripped == "$$":  # display-math block
+            close_itemize()
+            j = i + 1
+            buf: list[str] = []
+            while j < n and lines[j].strip() != "$$":
+                buf.append(lines[j])
+                j += 1
+            out += [r"\[", *buf, r"\]"]
+            i = j + 1
+            continue
+
+        if _is_table_row(line):  # markdown table block
+            close_itemize()
+            j = i
+            block: list[str] = []
+            while j < n and _is_table_row(lines[j]):
+                block.append(lines[j])
+                j += 1
+            out += _render_table(block)
+            i = j
+            continue
+
+        if line.startswith("#### "):
+            close_itemize(); out.append(r"\subsubsection*{" + _tex_escape(line[5:]) + "}")
+        elif line.startswith("### "):
+            close_itemize(); out.append(r"\subsection*{" + _tex_escape(line[4:]) + "}")
+        elif line.startswith("## "):
+            close_itemize(); out.append(r"\section*{" + _tex_escape(line[3:]) + "}")
         elif line.startswith("# "):
-            continue  # title handled by \maketitle
+            pass  # title handled by \maketitle
         elif line.startswith("![") and "](" in line:
-            # ![alt](path) -> includegraphics (best-effort; missing files skipped)
+            close_itemize()
             inside = line[line.find("](") + 2 : line.rfind(")")]
-            out.append(r"\begin{figure}[h]\centering")
-            out.append(rf"\includegraphics[width=0.7\textwidth]{{{inside}}}")
-            out.append(r"\end{figure}")
-        elif line.strip():
-            out.append(_tex_escape(line))
+            out += [r"\begin{figure}[h]\centering",
+                    rf"\includegraphics[width=0.7\textwidth]{{{inside}}}",
+                    r"\end{figure}"]
+        elif stripped.startswith(("- ", "* ")):
+            if not in_itemize:
+                out.append(r"\begin{itemize}")
+                in_itemize = True
+            out.append(r"\item " + _render_inline(stripped[2:]))
+        elif stripped:
+            close_itemize()
+            out.append(_render_inline(line))
         else:
+            close_itemize()
             out.append("")
+        i += 1
+    close_itemize()
     return "\n".join(out)

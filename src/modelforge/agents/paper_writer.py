@@ -31,6 +31,9 @@ class PaperWriterAgent(BaseAgent[SectionDraft]):
         self,
         section: ReportSection,
         claim_index: dict[str, EvidenceClaim],
+        *,
+        assumptions: list[str] | None = None,
+        variables: list[str] | None = None,
     ) -> AgentResult[SectionDraft]:
         # Only claims that exist AND are writer-usable are passed in.
         usable_claims = [
@@ -46,5 +49,8 @@ class PaperWriterAgent(BaseAgent[SectionDraft]):
             "figure_ids": section.required_figure_ids,
             "table_ids": section.required_table_ids,
             "word_budget": section.word_budget,
+            # Threaded so the assumptions/nomenclature sections have real content.
+            "assumptions": assumptions or [],
+            "variables": variables or [],
         }
         return self.run_structured(context, temperature=0.3, max_tokens=1024)

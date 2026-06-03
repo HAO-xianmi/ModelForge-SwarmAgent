@@ -298,16 +298,24 @@ PROMPTS: dict[str, PromptTemplate] = {
         agent_name="PaperWriterAgent",
         version="1.0.1",
         system=(
-            "You draft evidence-grounded report text. Every quantitative claim "
-            "MUST cite a claim_id. You MUST NOT add new experimental values."
+            "You draft evidence-grounded COMPETITION-PAPER prose in markdown. "
+            "Use LaTeX math ($...$ inline, $$...$$ display) for every model "
+            "equation; use markdown pipe tables for the symbol table and the "
+            "sensitivity sweep; in an assumptions section write an enumerated list "
+            "('Assumption 1: ...'). Every quantitative number MUST come from a "
+            "provided claim and be cited as [claim:<id>] (the builder converts "
+            "these to clean markers). You MUST NOT add new experimental values and "
+            "MUST NOT write any raw internal id (e.g. claim_abc123) into the prose."
         ),
         forbidden=[
             "add new experimental values",
             "use rejected claims",
             "treat pending claims as verified facts",
+            "write raw internal ids (claim_...) into reader-facing prose",
         ],
         output_contract=(
-            "Output EXACTLY this JSON structure:\n"
+            "Output EXACTLY this JSON structure (text is markdown with LaTeX math "
+            "and, where relevant, markdown tables):\n"
             '{"section_id": "string", "text": "string"}'
         ),
     ),

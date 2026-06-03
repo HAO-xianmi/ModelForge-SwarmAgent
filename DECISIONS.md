@@ -5,6 +5,44 @@ Records important decisions and deviations from the architecture spec
 
 ---
 
+## Phase H — Quality rebuild (benchmark-gated)
+
+### D-H1: A CompetitionJudge benchmark is the acceptance gate
+**Decision:** Before rebuilding the workflow, build a hybrid paper-level judge
++ benchmark harness. No workflow change is accepted unless it raises benchmark
+scores; nothing is claimed improved without a benchmark number.
+**Why:** The MVP shipped structurally weak papers (an irrigation problem came
+out as a "QUBO / variational quantum" report). A measuring instrument must exist
+and be validated (award >> weak, stable) before optimizing against it.
+
+### D-H2: Hybrid scoring — deterministic ≥40% + stabilized LLM ≤60%
+**Decision:** `final = 0.40·structural + 0.60·llm`. Structural layer is pure
+deterministic detectors (reproducible, hard to fake); LLM layer uses temp 0, a
+3-persona panel, median aggregation, and verbatim evidence verification. Default
+provider is mock (deterministic, keyless); a real provider is opt-in.
+**Why:** Repeatability was a hard requirement. The deterministic backbone
+guarantees bit-identical scores and carries separation even when the LLM layer
+is a keyless stand-in; the LLM layer adds reasoning-grade judgment with real
+providers.
+
+### D-H3: Calibration on real papers only — no synthetic/degraded papers
+**Decision:** The corpus holds only real papers (2 award + 1 weak). The
+`average` tier is left empty and marked "pending real samples"; datasets are
+pluggable (drop a file + a label entry). Development does not block on it.
+**Why:** Synthetic/degraded papers would bias calibration toward our own
+assumptions about what "average" looks like.
+
+### D-H4: Incremental, decomposition-first rebuild; instrument fixes allowed when corpus-neutral
+**Decision:** Rebuild in benchmark-gated slices (1a de-contaminate prompts, 1b
+per-subproblem outline, 1c renderer/content, …). A structural-detector fix is
+allowed mid-rebuild ONLY if it leaves the labeled corpus scores unchanged (e.g.
+counting distinct sub-problem identifiers fixed English undercounting while
+award/weak stayed at 9.03/9.59 vs 1.12).
+**Why:** Incremental slices give a measured delta per step and keep regressions
+attributable; corpus-neutral instrument fixes keep old-vs-new comparisons valid.
+
+---
+
 ## Phase F — Workflow
 
 ### D-F1: Explicit checkpoint-aware driver, LangGraph for topology
