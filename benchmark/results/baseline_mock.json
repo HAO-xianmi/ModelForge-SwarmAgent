@@ -1,0 +1,45 @@
+{
+  "provider": "mock",
+  "n_judges": 3,
+  "margin": 2.0,
+  "separation": 7.9094,
+  "separation_ok": true,
+  "ordering_ok": true,
+  "passed": true,
+  "by_tier": {
+    "award": {
+      "n": 2,
+      "mean": 9.307400000000001,
+      "min": 9.0289,
+      "max": 9.5859,
+      "scores": [
+        [
+          "apmcm2025a_25201880",
+          9.0289
+        ],
+        [
+          "apmcm2025a_25201758",
+          9.5859
+        ]
+      ]
+    },
+    "weak": {
+      "n": 1,
+      "mean": 1.1195,
+      "min": 1.1195,
+      "max": 1.1195,
+      "scores": [
+        [
+          "modelforge_irrigation_v0",
+          1.1195
+        ]
+      ]
+    }
+  },
+  "pending": {
+    "average": "Real mid-tier samples pending; see corpus/average/_PENDING_REAL_SAMPLES.md"
+  },
+  "notes": [
+    "average tier empty (pending real samples); ordering checked over award vs weak"
+  ]
+}

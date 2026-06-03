@@ -91,7 +91,7 @@ disallow_untyped_defs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 addopts = "-q --strict-markers"
 markers = [
     "integration: integration tests across modules",

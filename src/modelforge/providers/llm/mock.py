@@ -361,6 +361,44 @@ def _mock_paper_writer(context: dict, prompt: str) -> dict:
     return {"section_id": section_id, "text": body}
 
 
+def _mock_competition_judge(context: dict, prompt: str) -> dict:
+    """Deterministic stand-in for a real judge panel (keyless CI).
+
+    It grades each dimension from the pre-computed structural signals passed in
+    context, so the LLM layer still tracks paper quality without a network call.
+    Real providers ignore these and reason over the paper text. This is a
+    documented stand-in, NOT a substitute for reasoning-grade judging.
+    """
+    structural = context.get("structural_scores", {})
+    dims = context.get("dimensions", [])
+    pool = context.get("evidence_pool", {})
+    # Coarse proxy for dimensions with no structural signal (e.g. innovation):
+    # reward the presence of a sensitivity analysis + many equations as a weak
+    # signal of a non-trivial contribution.
+    signals = context.get("detected_signals", {})
+    innovation_proxy = 6.0 if (
+        signals.get("has_sensitivity") and signals.get("n_equations", 0) >= 10
+    ) else (3.0 if signals.get("n_equations", 0) >= 4 else 1.5)
+    scores: dict[str, float] = {}
+    evidence: dict[str, list[str]] = {}
+    justifications: dict[str, str] = {}
+    pool_spans = [s for spans in pool.values() for s in spans]
+    for d in dims:
+        did = d["dimension_id"]
+        scores[did] = float(structural.get(did, innovation_proxy))
+        # Attach a couple of real detected spans so evidence verification passes.
+        key_map = {
+            "decomposition": "subproblems", "modeling_depth": "equations",
+            "assumptions": "assumptions", "validation": "baseline",
+            "sensitivity": "sensitivity", "results": "tables",
+            "writing": "subproblems",
+        }
+        spans = pool.get(key_map.get(did, ""), []) or pool_spans[:1]
+        evidence[did] = spans[:2]
+        justifications[did] = "mock stand-in: graded from detected structural signals"
+    return {"scores": scores, "evidence": evidence, "justifications": justifications}
+
+
 _DISPATCH = {
     "problem_parser": _mock_problem_parser,
     "domain_analyst": _mock_domain_analyst,
@@ -371,5 +409,6 @@ _DISPATCH = {
     "debugger": _mock_debugger,
     "paper_architect": _mock_paper_architect,
     "paper_writer": _mock_paper_writer,
+    "competition_judge": _mock_competition_judge,
     "generic": _mock_generic,
 }

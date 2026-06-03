@@ -1,0 +1,25 @@
+{
+  "papers": [
+    {
+      "file": "award/apmcm2025a_25201880.txt",
+      "tier": "award",
+      "problem_slug": "irrigation",
+      "source": "APMCM 2025 A, entry 25201880 (award paper, faithful text extraction)"
+    },
+    {
+      "file": "award/apmcm2025a_25201758.txt",
+      "tier": "award",
+      "problem_slug": "irrigation",
+      "source": "APMCM 2025 A, entry 25201758 (award paper, faithful text extraction)"
+    },
+    {
+      "file": "weak/modelforge_irrigation_v0.txt",
+      "tier": "weak",
+      "problem_slug": "irrigation",
+      "source": "ModelForge-Swarm v0 generated report (report.pdf) — pre-rebuild baseline"
+    }
+  ],
+  "tiers_pending": {
+    "average": "Real mid-tier samples pending; see corpus/average/_PENDING_REAL_SAMPLES.md"
+  }
+}

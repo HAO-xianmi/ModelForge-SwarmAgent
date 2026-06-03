@@ -1,0 +1,5 @@
+# Benchmark run outputs are generated; keep the dir, ignore the contents
+# except the committed baseline.
+*
+!.gitignore
+!baseline_mock.json

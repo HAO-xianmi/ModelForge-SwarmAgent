@@ -13,6 +13,7 @@ from rich.console import Console
 from rich.table import Table
 
 from modelforge.cli import doctor as doctor_mod
+from modelforge.cli.benchmark_cli import benchmark_app
 from modelforge.graph.coordinator import RunCoordinator, default_database
 from modelforge.schemas.enums import CheckpointAction, RunStatus
 from modelforge.services.ingestion import UploadedFile
@@ -21,6 +22,7 @@ app = typer.Typer(
     add_completion=False,
     help="ModelForge-Swarm: an auditable multi-agent copilot for mathematical modeling.",
 )
+app.add_typer(benchmark_app, name="benchmark")
 console = Console()
 
 
