@@ -535,6 +535,78 @@ def _mock_route_generator(context: dict, prompt: str) -> dict:
     return {"routes": routes, "subproblem_id": sub}
 
 
+def _mock_assumption_agent(context: dict, prompt: str) -> dict:
+    existing = context.get("existing_assumptions", [])
+    domain = context.get("domain_assumptions", [])
+    maxn = int(context.get("max_assumptions", 5))
+    pool = list(dict.fromkeys([*existing, *domain])) or [
+        "the provided data is representative of the operating conditions"
+    ]
+    items = [
+        {
+            "assumption_id": f"A{i + 1}",
+            "statement": s,
+            "justification": "adopted to keep the model tractable while preserving "
+            "the dominant effects",
+            "impact": "simplifies the formulation; relaxing it would require a more "
+            "detailed sub-model",
+        }
+        for i, s in enumerate(pool[:maxn])
+    ]
+    return {"assumptions": items}
+
+
+def _mock_sensitivity_planner(context: dict, prompt: str) -> dict:
+    methods = context.get("sensitivity_methods", [])
+    params = [
+        {"name": m, "baseline": "reference value", "low": "-20%", "high": "+20%",
+         "rationale": "spans the plausible operating range"}
+        for m in methods[:3]
+    ] or [{"name": "key parameter", "baseline": "reference value", "low": "-20%",
+           "high": "+20%", "rationale": "plausible operating range"}]
+    return {
+        "subproblem_id": context.get("subproblem_id"),
+        "parameters": params,
+        "outcomes": ["objective value", "feasibility margin"],
+        "method": "one-at-a-time",
+        "expected_relationship": "the outcome varies monotonically with each "
+        "parameter over the tested range",
+    }
+
+
+def _mock_red_team(context: dict, prompt: str) -> dict:
+    s = context.get("signals", {})
+    findings: list[dict] = []
+    if not s.get("has_baseline"):
+        findings.append({"severity": "MAJOR", "category": "validation",
+                         "description": "no baseline comparison found",
+                         "recommendation": "add a simple baseline and beat it"})
+    if not s.get("has_validation"):
+        findings.append({"severity": "MAJOR", "category": "validation",
+                         "description": "no out-of-sample validation / metrics found",
+                         "recommendation": "report held-out or cross-validation metrics"})
+    if not s.get("has_sensitivity"):
+        findings.append({"severity": "MAJOR", "category": "weak_sensitivity",
+                         "description": "no sensitivity / robustness analysis found",
+                         "recommendation": "add a parameter->outcome sensitivity analysis"})
+    if not s.get("has_assumptions"):
+        findings.append({"severity": "MINOR", "category": "assumption",
+                         "description": "assumptions are not enumerated",
+                         "recommendation": "state numbered, justified assumptions"})
+    if not s.get("mentions_overfit_control"):
+        findings.append({"severity": "MINOR", "category": "overfitting",
+                         "description": "no overfitting control mentioned",
+                         "recommendation": "mention regularization / CV / held-out evaluation"})
+    if s.get("leaked_ids"):
+        findings.append({"severity": "BLOCKER", "category": "other",
+                         "description": "internal claim ids leaked into the report body",
+                         "recommendation": "strip internal tokens before export"})
+    has = lambda sev: any(f["severity"] == sev for f in findings)  # noqa: E731
+    verdict = "BLOCK" if has("BLOCKER") else ("REVISE" if has("MAJOR") else "PASS")
+    return {"findings": findings, "verdict": verdict,
+            "summary": f"{len(findings)} findings; verdict {verdict}."}
+
+
 def _mock_competition_judge(context: dict, prompt: str) -> dict:
     """Deterministic stand-in for a real judge panel (keyless CI).
 
@@ -583,7 +655,13 @@ _DISPATCH = {
     "debugger": _mock_debugger,
     "paper_architect": _mock_paper_architect,
     "paper_writer": _mock_paper_writer,
+    # The mock competition-writer produces the SAME clean scaffolding (D-H5: the
+    # mock must not dump raw equations). The real provider does the prose.
+    "competition_writer": _mock_paper_writer,
     "route_generator": _mock_route_generator,
+    "assumption_agent": _mock_assumption_agent,
+    "sensitivity_planner": _mock_sensitivity_planner,
+    "red_team": _mock_red_team,
     "competition_judge": _mock_competition_judge,
     "generic": _mock_generic,
 }

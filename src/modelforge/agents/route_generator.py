@@ -36,9 +36,11 @@ class RouteGeneratorAgent(BaseAgent[RouteSet]):
     ) -> AgentResult[RouteSet]:
         families = list(domain_analysis.likely_problem_families)
         statement = subproblem.statement if subproblem else problem_card.problem_summary
+        # Weight the SUB-PROBLEM statement so each sub-problem retrieves the model
+        # that actually fits it (fixes the Slice 2 "same model everywhere" bug).
         text = " ".join(
-            [problem_card.title, problem_card.problem_summary, statement,
-             " ".join(domain_analysis.domain_tags), " ".join(domain_analysis.key_terms)]
+            [statement, statement, problem_card.title,
+             " ".join(domain_analysis.key_terms)]
         )
         domain_models = get_domain_model_library().retrieve(text, families, top_k=8)
         methods = get_method_library().retrieve(problem_card, domain_analysis, top_k=8)
@@ -51,7 +53,7 @@ class RouteGeneratorAgent(BaseAgent[RouteSet]):
                 {
                     "model_id": m.model_id, "name": m.name, "approach": m.category,
                     "families": [f.value for f in m.families],
-                    "summary": m.summary,
+                    "summary": m.summary, "suitability": m.suitability_score,
                     "assumptions": m.assumptions[:3], "advantages": m.advantages[:3],
                     "limitations": m.failure_modes[:3],
                 }

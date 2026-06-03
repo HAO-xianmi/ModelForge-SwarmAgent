@@ -17,10 +17,12 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from modelforge.agents.assumption_agent import AssumptionIntelligenceAgent
 from modelforge.agents.base import AgentContext
+from modelforge.agents.competition_writer import CompetitionWriterAgent
 from modelforge.agents.domain_analyst import DomainAnalystAgent
 from modelforge.agents.paper_architect import PaperArchitectAgent
-from modelforge.agents.paper_writer import PaperWriterAgent
+from modelforge.agents.red_team import RedTeamAgent
 from modelforge.agents.route_generator import RouteGeneratorAgent
 from modelforge.providers.llm.base import LLMProvider
 from modelforge.schemas.enums import ClaimStatus, ClaimType
@@ -74,26 +76,30 @@ def generate_report(problem_md: str, provider: LLMProvider) -> tuple[str, list[s
     kb = get_domain_model_library()
     audit: list[str] = []
 
-    # Per sub-problem: generate routes -> tournament -> selected domain model.
+    # Slice 3b: intelligent, justified assumptions (replace generic placeholders).
+    aset = AssumptionIntelligenceAgent(ctx).generate(card, da).output
+    assumptions = (
+        [a.statement for a in aset.assumptions] if aset and aset.assumptions
+        else card.assumptions_to_confirm
+    )
+
+    # Per sub-problem: run the route tournament (route diversity + audit), then
+    # resolve the CONTENT model by direct best-fit retrieval on the sub-problem
+    # statement so each section gets the model that actually fits it
+    # (sub-problem-aware; fixes the Slice 2 "same model everywhere" regression).
     sub_to_dm: dict[str, dict] = {}
-    text_for = card.problem_summary
     for sp in card.subproblems:
         routes = RouteGeneratorAgent(ctx).generate(card, da, subproblem=sp).output
-        if not routes or not routes.routes:
-            continue
-        result = RouteTournament().run(routes)
-        audit.extend(result.audit_trail)
-        winner = next((r for r in routes.routes if r.route_id == result.selected_route_id), routes.routes[0])
-        dm = None
-        for mid in winner.domain_model_ids:
-            dm = kb.get(mid)
-            if dm:
-                break
-        if dm is None:
-            hits = kb.retrieve(sp.statement + " " + text_for, da.likely_problem_families, top_k=1)
-            dm = hits[0] if hits else None
-        if dm is not None:
-            sub_to_dm[sp.sub_id] = dm.model_dump()
+        if routes and routes.routes:
+            audit.extend(RouteTournament().run(routes).audit_trail)
+        # Keyword-only (no coarse whole-problem family) so each section gets the
+        # model matching ITS statement; fall back to the problem context if the
+        # statement alone has no keyword hit.
+        hits = kb.retrieve(sp.statement, None, top_k=1) or kb.retrieve(
+            sp.statement + " " + card.title + " " + card.problem_summary, None, top_k=1
+        )
+        if hits:
+            sub_to_dm[sp.sub_id] = hits[0].model_dump()
 
     claims = _seed_claims()
     figs = ["fig_overview", "fig_results"]
@@ -104,7 +110,7 @@ def generate_report(problem_md: str, provider: LLMProvider) -> tuple[str, list[s
             s.required_figure_ids = figs[:1]
             s.required_table_ids = tabs
 
-    writer = PaperWriterAgent(ctx)
+    writer = CompetitionWriterAgent(ctx)
     ci = {c.claim_id: c for c in claims}
     texts: dict[str, str] = {}
     for s in outline.sections:
@@ -112,12 +118,18 @@ def generate_report(problem_md: str, provider: LLMProvider) -> tuple[str, list[s
         if s.section_id.startswith("model_"):
             dm = sub_to_dm.get(s.section_id.replace("model_", ""))
         r = writer.write_section(
-            s, ci, assumptions=card.assumptions_to_confirm,
+            s, ci, assumptions=assumptions,
             variables=card.variables, domain_model=dm,
         )
         texts[s.section_id] = r.output.text if r.ok and r.output else ""
 
     markdown, _ = ReportBuilder().build_markdown(card.title, outline, texts, claims, [])
+
+    # Slice 3d: adversarial red-team gate before export (record findings).
+    rt = RedTeamAgent(ctx).review(markdown).output
+    if rt:
+        audit.append(f"red-team verdict: {rt.verdict} ({len(rt.findings)} findings)")
+        audit.extend(f"  [{f.severity}] {f.category}: {f.description}" for f in rt.findings)
     return markdown, audit
 
 

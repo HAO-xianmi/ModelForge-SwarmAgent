@@ -7,6 +7,20 @@ Records important decisions and deviations from the architecture spec
 
 ## Phase H — Quality rebuild (benchmark-gated)
 
+### D-H6: Sub-problem-aware content matching is keyword-dominant, decoupled from the tournament
+**Decision:** Each report section's CONTENT domain model is chosen by keyword-
+dominant retrieval on that SUB-PROBLEM's statement (family overlap down-weighted
+to 0.3, keyword surface up to 0.7), independent of the route tournament (which
+still selects the modeling APPROACH + audit trail). The CompetitionWriterAgent
+(real provider) weaves the matched model's governing equations into a derivation;
+the mock writer stays clean scaffolding.
+**Why:** The whole-problem family is coarse and often mis-detected, so a family-
+matched-but-irrelevant model beat keyword-matched correct ones (penman-monteith
+got injected into network/layout/drought sections). Keyword-on-statement fixes
+per-section matching. Real-judge validation: irrigation 5.55 → 6.55 (+1.00),
+content layer 3.82 → 4.86. Confirms D-H5's plan (KB content lands in the real
+writer) works.
+
 ### D-H1: A CompetitionJudge benchmark is the acceptance gate
 **Decision:** Before rebuilding the workflow, build a hybrid paper-level judge
 + benchmark harness. No workflow change is accepted unless it raises benchmark

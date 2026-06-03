@@ -39,7 +39,22 @@ benchmark scores; nothing is claimed improved without a benchmark number.
 | Slice 2b — RouteGeneratorAgent (≥5 distinct-approach routes) | ✅ | mechanistic/data_driven/optimization/stochastic/network/hybrid; tradeoffs + expected metrics |
 | Slice 2c — Route tournament (weighted criteria, pairwise, audit) | ✅ | deterministic; full round-robin; audit trail |
 | Slice 2d/e — generate harness + 4-category measurement | ✅ | `modelforge benchmark generate all`; KB-content injection **reverted** (regressed real judge), deferred to Slice 3 |
-| Slice 3 — competition writer, assumption/sensitivity agents, red team | ⬜ | next |
+| Slice 3a — sub-problem-aware matching + CompetitionWriterAgent | ✅ | keyword-dominant per-sub-problem model match; real writer weaves KB equations into prose |
+| Slice 3b — AssumptionIntelligenceAgent | ✅ | numbered, justified, domain-grounded assumptions (replaces generic placeholder) |
+| Slice 3c — SensitivityPlannerAgent | ✅ | designs parameter→outcome study from KB sensitivity methods |
+| Slice 3d — RedTeamAgent (adversarial pre-export gate) | ✅ | deterministic checks (baseline/CV/sensitivity/assumptions/leakage) → findings + BLOCK/REVISE/PASS |
+| Slice 3e — citations + LaTeX export + full real-judge benchmark | ⬜ | next |
+
+**Slice 3 benchmark (mock generate harness):** mean **7.65** (was 7.48) —
+forecasting 8.20, irrigation/network/topsis 7.47. The assumption agent enriches
+content (no regression; +0.17). Real-judge irrigation: weak 0.77 → mock-writer
+5.55 → real CompetitionWriter **6.55**.
+
+**Slice 3a real-judge validation (irrigation, DeepSeek):** mock-writer **5.55**
+→ real CompetitionWriter **6.55** (**+1.00**); content/LLM layer 3.82 → **4.86**,
+structural 9.08, 17k-char paper, no leaked ids. Confirms the real writer turns
+the KB into content a reasoning judge rewards (the mock-writer ceiling is broken
+with a real provider).
 
 **Slice 2 benchmark (generate harness, mock judge — multi-category baseline):**
 forecasting 8.03, irrigation 7.29, network 7.29, topsis 7.29 → **mean 7.48**.
@@ -222,8 +237,8 @@ _None._
 - `tests/integration/test_examples.py` — 3/3 (prediction/optimization/graph through the full workflow).
 - Frontend: `tsc --noEmit` clean; `next build` compiles all routes.
 
-## Total: 185 tests passing (141 unit + 44 integration/e2e). ruff + mypy clean.
-_(+49 from Phase H: evaluation + benchmark, prompt de-contamination, decomposition, rendering/leakage, domain KB, route generator, route tournament, generate harness.)_
+## Total: 193 tests passing (149 unit + 44 integration/e2e). ruff + mypy clean.
+_(+57 from Phase H: evaluation + benchmark, de-contamination, decomposition, rendering/leakage, domain KB, route generator/tournament, generate harness, competition writer, assumption/sensitivity/red-team agents.)_
 
 ## External services requiring credentials
 - OpenAI / Anthropic (LLM) — optional, mock default.

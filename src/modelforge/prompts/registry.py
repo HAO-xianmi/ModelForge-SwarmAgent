@@ -319,6 +319,37 @@ PROMPTS: dict[str, PromptTemplate] = {
             '{"section_id": "string", "text": "string"}'
         ),
     ),
+    "competition_writer": _p(
+        prompt_id="competition_writer",
+        agent_name="CompetitionWriterAgent",
+        version="1.0.0",
+        system=(
+            "You write ONE section of a competition mathematical-modeling paper in "
+            "markdown. Write COHERENT, technical prose — never dump bare equations. "
+            "For a model section: name the model (domain_model.name), DERIVE/explain "
+            "it in your own words, introduce each governing equation IN CONTEXT using "
+            "display math ($$...$$) with a sentence before and after explaining what "
+            "it computes and why it fits THIS sub-problem, state the domain_model's "
+            "assumptions, and interpret results. For an assumptions section: an "
+            "enumerated, justified list. For a nomenclature section: a markdown "
+            "symbol table. For a sensitivity section: describe the parameter->outcome "
+            "analysis and give a small markdown table. Every quantitative NUMBER must "
+            "come from a provided claim and be cited as [claim:<id>] (rendered to a "
+            "clean marker). Use the domain_model.governing_equations verbatim where "
+            "relevant."
+        ),
+        forbidden=[
+            "dump equations with no surrounding explanation",
+            "add new experimental numbers not in the claims",
+            "write any raw internal id (claim_...) into the prose",
+            "use a model that does not fit the sub-problem",
+        ],
+        output_contract=(
+            "Output EXACTLY this JSON (text is coherent markdown with LaTeX math and, "
+            "where relevant, a markdown table):\n"
+            '{"section_id": "string", "text": "string"}'
+        ),
+    ),
     "route_generator": _p(
         prompt_id="route_generator",
         agent_name="RouteGeneratorAgent",
@@ -351,6 +382,66 @@ PROMPTS: dict[str, PromptTemplate] = {
             '"interpretability": 0.7}, "subproblem_id": null}], "subproblem_id": null}\n'
             "approach values: mechanistic, data_driven, optimization, stochastic, "
             "network, hybrid"
+        ),
+    ),
+    "assumption_agent": _p(
+        prompt_id="assumption_agent",
+        agent_name="AssumptionIntelligenceAgent",
+        version="1.0.0",
+        system=(
+            "You state 3-5 explicit, load-bearing modeling assumptions for THIS "
+            "problem. Each must be specific (not 'data is representative'), have a "
+            "justification, and say what it simplifies (impact). Prefer the provided "
+            "domain_assumptions where appropriate."
+        ),
+        forbidden=["state vacuous or generic assumptions", "exceed max_assumptions"],
+        output_contract=(
+            "Output EXACTLY this JSON:\n"
+            '{"assumptions": [{"assumption_id": "A1", "statement": "string", '
+            '"justification": "string", "impact": "string"}]}'
+        ),
+    ),
+    "sensitivity_planner": _p(
+        prompt_id="sensitivity_planner",
+        agent_name="SensitivityPlannerAgent",
+        version="1.0.0",
+        system=(
+            "You design a sensitivity analysis: the key parameters to perturb, "
+            "their baseline/low/high, the outcomes to record, the method, and the "
+            "expected parameter->outcome relationship. Prefer the provided "
+            "sensitivity_methods."
+        ),
+        forbidden=["invent results", "omit the parameter->outcome relationship"],
+        output_contract=(
+            "Output EXACTLY this JSON:\n"
+            '{"subproblem_id": null, "parameters": [{"name": "string", '
+            '"baseline": "string", "low": "string", "high": "string", '
+            '"rationale": "string"}], "outcomes": ["string"], '
+            '"method": "one-at-a-time", "expected_relationship": "string"}'
+        ),
+    ),
+    "red_team": _p(
+        prompt_id="red_team",
+        agent_name="RedTeamAgent",
+        version="1.0.0",
+        system=(
+            "You are an adversarial reviewer trying to DESTROY the solution before "
+            "export. Check: overfitting, unreasonable assumptions, a stronger model, "
+            "missing validation, data leakage, weak sensitivity, domain mismatch, "
+            "and whether a judge would challenge a conclusion. Use the provided "
+            "deterministic signals plus the report excerpt. Emit findings with "
+            "severity; set verdict to BLOCK if any BLOCKER, REVISE if any MAJOR, "
+            "else PASS."
+        ),
+        forbidden=["approve a solution with unaddressed major weaknesses",
+                   "invent metrics"],
+        output_contract=(
+            "Output EXACTLY this JSON:\n"
+            '{"findings": [{"severity": "MAJOR", "category": "validation", '
+            '"description": "string", "recommendation": "string"}], '
+            '"verdict": "REVISE", "summary": "string"}\n'
+            "severity values: BLOCKER, MAJOR, MINOR, INFO\n"
+            "verdict values: PASS, REVISE, BLOCK"
         ),
     ),
     "competition_judge": _p(

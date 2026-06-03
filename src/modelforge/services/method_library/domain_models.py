@@ -349,11 +349,12 @@ class DomainModelLibrary:
         t = text.lower()
         scored: list[tuple[float, DomainModel]] = []
         for m in self._models:
-            score = 0.0
-            if fam & set(m.families):
-                score += 0.5
+            # Keyword-DOMINANT: the family is coarse (one family per multi-part
+            # problem, often mis-detected), so keyword surface decides the fit.
             hits = sum(1 for k in m.keywords if k in t)
-            score += 0.5 * min(1.0, hits / 3.0)
+            score = 0.7 * min(1.0, hits / 2.0)
+            if fam & set(m.families):
+                score += 0.3
             if score > 0:
                 scored.append((score, m.model_copy(update={"suitability_score": round(score, 4)})))
         scored.sort(key=lambda pair: pair[0], reverse=True)
