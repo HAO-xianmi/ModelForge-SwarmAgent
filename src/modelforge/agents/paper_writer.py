@@ -34,6 +34,7 @@ class PaperWriterAgent(BaseAgent[SectionDraft]):
         *,
         assumptions: list[str] | None = None,
         variables: list[str] | None = None,
+        domain_model: dict | None = None,
     ) -> AgentResult[SectionDraft]:
         # Only claims that exist AND are writer-usable are passed in.
         usable_claims = [
@@ -52,5 +53,8 @@ class PaperWriterAgent(BaseAgent[SectionDraft]):
             # Threaded so the assumptions/nomenclature sections have real content.
             "assumptions": assumptions or [],
             "variables": variables or [],
+            # The KB-grounded domain model chosen for this sub-problem (Slice 2d):
+            # supplies the governing equations + assumptions for a model section.
+            "domain_model": domain_model or {},
         }
         return self.run_structured(context, temperature=0.3, max_tokens=1024)

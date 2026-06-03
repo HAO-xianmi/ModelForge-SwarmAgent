@@ -72,6 +72,31 @@ def evaluate(
         console.print(f"[green]Wrote[/green] {out}")
 
 
+@benchmark_app.command(name="generate")
+def generate(
+    slug: str = typer.Argument(..., help="problem slug, or 'all' for every category"),
+    provider: str = typer.Option("mock", help="mock | real | openai | anthropic | deepseek"),
+    judges: int = typer.Option(3),
+) -> None:
+    """Generate a report via the rebuilt path and score it with CompetitionJudge."""
+    from benchmark.runner import generate_all, generate_and_score
+
+    if slug == "all":
+        results = generate_all(provider=provider, n_judges=judges)
+        console.print("generated-report scores by category:", markup=False)
+        for s, r in results.items():
+            console.print(
+                f"  {s:18s} {r.final_score:5.2f}  "
+                f"(struct {r.structural_subtotal:.2f} / llm {r.llm_subtotal:.2f})",
+                markup=False, highlight=False,
+            )
+        mean = sum(r.final_score for r in results.values()) / max(1, len(results))
+        console.print(f"  MEAN              {mean:5.2f}", markup=False, highlight=False)
+    else:
+        r = generate_and_score(slug, provider=provider, n_judges=judges)
+        console.print(f"{slug}: {r.final_score:.2f} / 10", markup=False, highlight=False)
+
+
 @benchmark_app.command(name="list")
 def list_suite() -> None:
     """List benchmark problems and corpus tiers."""

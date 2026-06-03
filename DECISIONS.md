@@ -41,6 +41,21 @@ award/weak stayed at 9.03/9.59 vs 1.12).
 **Why:** Incremental slices give a measured delta per step and keep regressions
 attributable; corpus-neutral instrument fixes keep old-vs-new comparisons valid.
 
+### D-H5: The mock writer is the content ceiling — KB content needs a real writer
+**Decision:** The deterministic mock writer produces clean structural scaffolding
+ONLY. KB domain equations are NOT injected into the mock writer; they are consumed
+by the real CompetitionWriterAgent (Slice 3) and validated with the real judge.
+Content-quality slices are benchmarked with real-provider runs at milestone
+boundaries.
+**Why:** Real-judge measurement (2026-06-03) showed injecting raw KB equations
+into the mock writer REGRESSES the score (incoherent equation-dumping; the same
+non-sub-problem-aware model injected into every section). Slice 2's value (route
+diversity + domain grounding) is content, which a templated mock writer cannot
+express and a structural-only mock judge cannot reward. So Slice 2 ships as tested
+*infrastructure* (KB, RouteGenerator, tournament + audit); the real writer turns
+it into competition prose. Gate stays green: the mock generate-harness baseline is
+not regressed.
+
 ---
 
 ## Phase F — Workflow

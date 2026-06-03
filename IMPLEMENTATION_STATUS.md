@@ -35,7 +35,25 @@ benchmark scores; nothing is claimed improved without a benchmark number.
 | Rebuild Slice 1b — thread subproblems into outline (root cause #1) | ✅ | per-subproblem `model_<id>` sections + assumptions/nomenclature/sensitivity; detector counts distinct ids |
 | Rebuild Slice 1c — equation/table renderer + assumptions/symbol/sensitivity content; no claim-token leakage | ✅ | LaTeX renders math/tables/subsections; section-aware writer; sweep strips leaked ids |
 | **Rebuild Slice 1 measure — irrigation rebuilt report vs weak (1.12)** | ✅ | **OLD 1.12 → NEW 8.20 (+7.08)**, mock judge |
-| Slices 2–3 — route tournament, domain-model KB, competition agents, red team | ⬜ | pending |
+| Slice 2a — domain/mechanistic model KB (14 models, retrieval) | ✅ | Penman-Monteith, soil balance, MPC, coverage, Markov-Gamma, multistage-DP, entropy-TOPSIS, min-cost-flow, GBDT… |
+| Slice 2b — RouteGeneratorAgent (≥5 distinct-approach routes) | ✅ | mechanistic/data_driven/optimization/stochastic/network/hybrid; tradeoffs + expected metrics |
+| Slice 2c — Route tournament (weighted criteria, pairwise, audit) | ✅ | deterministic; full round-robin; audit trail |
+| Slice 2d/e — generate harness + 4-category measurement | ✅ | `modelforge benchmark generate all`; KB-content injection **reverted** (regressed real judge), deferred to Slice 3 |
+| Slice 3 — competition writer, assumption/sensitivity agents, red team | ⬜ | next |
+
+**Slice 2 benchmark (generate harness, mock judge — multi-category baseline):**
+forecasting 8.03, irrigation 7.29, network 7.29, topsis 7.29 → **mean 7.48**.
+
+**⚠ Real-judge regression finding (2026-06-03):** wiring the KB's domain
+equations into the *mock* writer **regressed** the real judge (irrigation LLM
+layer 3.82 → 2.42; final 5.55 → 4.56) because (a) route selection was not
+sub-problem-aware (Penman-Monteith injected into every section), and (b) the mock
+writer dumps raw equations into templated prose. **The mock writer is the content
+ceiling** — content-quality slices can only be validated with a REAL writer +
+real judge. Decision: commit Slice 2 *infrastructure* (KB/routes/tournament, all
+tested, no regression); the KB content lands in Slice 3's real CompetitionWriter,
+validated with the real judge. Real-judge baseline to beat (irrigation): weak
+**0.77** → current rebuilt (mock writer) **5.55**.
 
 **Benchmark deltas (record per slice):**
 - Baseline (pre-rebuild generated paper, `report.pdf`): **1.12 / 10**.
@@ -204,8 +222,8 @@ _None._
 - `tests/integration/test_examples.py` — 3/3 (prediction/optimization/graph through the full workflow).
 - Frontend: `tsc --noEmit` clean; `next build` compiles all routes.
 
-## Total: 166 tests passing (122 unit + 44 integration/e2e). ruff + mypy clean.
-_(+30 from Phase H: evaluation structural, benchmark calibration/repeatability, prompt de-contamination guard, paper-architect decomposition, report rendering + leakage.)_
+## Total: 185 tests passing (141 unit + 44 integration/e2e). ruff + mypy clean.
+_(+49 from Phase H: evaluation + benchmark, prompt de-contamination, decomposition, rendering/leakage, domain KB, route generator, route tournament, generate harness.)_
 
 ## External services requiring credentials
 - OpenAI / Anthropic (LLM) — optional, mock default.

@@ -419,6 +419,11 @@ def _mock_paper_writer(context: dict, prompt: str) -> dict:
             "| key parameter | lower response | reference | upper response |"
         )
     elif sid.startswith("model"):
+        # NOTE: the mock writer intentionally does NOT render the KB's domain
+        # equations — dumping raw equation blocks into templated prose is
+        # incoherent and regresses a reasoning judge (validated 2026-06-03).
+        # The `domain_model` context is consumed only by the real
+        # CompetitionWriterAgent (Slice 3), which weaves it into prose.
         body = (
             (claim_text or "We establish and solve the model for this sub-problem.")
             + " The governing relation is\n\n$$\ny = a \\cdot x + b\n$$\n\n"
@@ -450,6 +455,84 @@ def _mock_paper_writer(context: dict, prompt: str) -> dict:
     else:
         body = claim_text or "This section summarizes the relevant analysis."
     return {"section_id": section_id, "text": body}
+
+
+_ROUTE_MERIT = {
+    "mechanistic": dict(problem_fit=0.85, modeling_depth=0.80, innovation=0.50,
+                        feasibility=0.80, robustness=0.70, interpretability=0.90),
+    "data_driven": dict(problem_fit=0.80, modeling_depth=0.75, innovation=0.55,
+                        feasibility=0.85, robustness=0.60, interpretability=0.50),
+    "optimization": dict(problem_fit=0.80, modeling_depth=0.80, innovation=0.50,
+                         feasibility=0.70, robustness=0.65, interpretability=0.70),
+    "stochastic": dict(problem_fit=0.75, modeling_depth=0.70, innovation=0.60,
+                       feasibility=0.70, robustness=0.85, interpretability=0.60),
+    "network": dict(problem_fit=0.80, modeling_depth=0.75, innovation=0.55,
+                    feasibility=0.75, robustness=0.70, interpretability=0.70),
+    "hybrid": dict(problem_fit=0.85, modeling_depth=0.85, innovation=0.75,
+                   feasibility=0.65, robustness=0.75, interpretability=0.60),
+}
+
+
+def _route_from_model(rid: str, m: dict, approach: str, family: str, sub) -> dict:
+    return {
+        "route_id": rid, "name": f"{m['name']} route", "approach": approach,
+        "family": family, "summary": m.get("summary", ""),
+        "domain_model_ids": [m["model_id"]], "method_ids": [],
+        "assumptions": m.get("assumptions") or ["the domain assumptions hold"],
+        "advantages": m.get("advantages") or ["grounded in a validated domain model"],
+        "limitations": m.get("limitations") or ["model simplifications apply"],
+        "risks": ["parameter estimation / data availability"],
+        "expected_metrics": _ROUTE_MERIT.get(approach, _ROUTE_MERIT["data_driven"]),
+        "subproblem_id": sub,
+    }
+
+
+def _mock_route_generator(context: dict, prompt: str) -> dict:
+    """Build >= min_routes substantially-different routes (distinct approaches)
+    grounded in the retrieved domain models, padding with generic methods."""
+    dms = context.get("domain_models", [])
+    methods = context.get("methods", [])
+    family = context.get("problem_family", "unknown")
+    sub = context.get("subproblem_id")
+    min_routes = int(context.get("min_routes", 5))
+
+    by_approach: dict[str, list[dict]] = {}
+    for m in dms:
+        by_approach.setdefault(m.get("approach", "data_driven"), []).append(m)
+
+    routes: list[dict] = []
+    for ap in ("mechanistic", "data_driven", "optimization", "stochastic", "network"):
+        cand = by_approach.get(ap)
+        if cand:
+            routes.append(_route_from_model(f"route_{ap}", cand[0], ap, family, sub))
+
+    mech, data = by_approach.get("mechanistic"), by_approach.get("data_driven")
+    if mech and data:
+        r = _route_from_model("route_hybrid", mech[0], "hybrid", family, sub)
+        r["name"] = f"Hybrid: {data[0]['name']} feeding {mech[0]['name']}"
+        r["summary"] = ("Hybrid route: a data-driven model supplies inputs/parameters "
+                        "to a mechanistic model, combining accuracy with interpretability.")
+        r["domain_model_ids"] = [mech[0]["model_id"], data[0]["model_id"]]
+        routes.append(r)
+
+    i = 0
+    while len(routes) < min_routes and i < len(methods):
+        mid = methods[i]
+        i += 1
+        if any(mid in r.get("method_ids", []) for r in routes):
+            continue
+        routes.append({
+            "route_id": f"route_method_{i}", "name": f"{mid} baseline route",
+            "approach": "data_driven", "family": family,
+            "summary": f"A route built on the generic {mid} method as a baseline.",
+            "domain_model_ids": [], "method_ids": [mid],
+            "assumptions": ["standard method assumptions hold"],
+            "advantages": ["simple and fast to implement"],
+            "limitations": ["less domain-specific than a mechanistic route"],
+            "risks": ["may underfit the domain structure"],
+            "expected_metrics": _ROUTE_MERIT["data_driven"], "subproblem_id": sub,
+        })
+    return {"routes": routes, "subproblem_id": sub}
 
 
 def _mock_competition_judge(context: dict, prompt: str) -> dict:
@@ -500,6 +583,7 @@ _DISPATCH = {
     "debugger": _mock_debugger,
     "paper_architect": _mock_paper_architect,
     "paper_writer": _mock_paper_writer,
+    "route_generator": _mock_route_generator,
     "competition_judge": _mock_competition_judge,
     "generic": _mock_generic,
 }

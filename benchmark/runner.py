@@ -159,3 +159,32 @@ def evaluate_paper(
 
 def corpus_size() -> int:
     return len(discover_corpus())
+
+
+def generate_and_score(
+    slug: str, *, provider: str = "mock", n_judges: int = 3
+) -> CompetitionJudgeReport:
+    """Generate a report for a benchmark problem via the rebuilt path and score it."""
+    from modelforge.services.evaluation.ingest import ingest_text
+
+    from benchmark.datasets import PROBLEMS_ROOT
+    from benchmark.generate import generate_report_for_slug
+
+    prov = make_provider(provider)
+    markdown, _audit = generate_report_for_slug(slug, prov, PROBLEMS_ROOT)
+    judge = CompetitionJudge(prov, n_judges=n_judges)
+    return judge.score(
+        ingest_text(markdown, paper_id=f"generated_{slug}", problem_slug=slug)
+    )
+
+
+def generate_all(
+    *, provider: str = "mock", n_judges: int = 3
+) -> dict[str, CompetitionJudgeReport]:
+    """Generate + score a report for every benchmark problem category."""
+    from benchmark.datasets import list_problems
+
+    return {
+        slug: generate_and_score(slug, provider=provider, n_judges=n_judges)
+        for slug in list_problems()
+    }

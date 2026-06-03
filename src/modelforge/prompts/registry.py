@@ -319,6 +319,40 @@ PROMPTS: dict[str, PromptTemplate] = {
             '{"section_id": "string", "text": "string"}'
         ),
     ),
+    "route_generator": _p(
+        prompt_id="route_generator",
+        agent_name="RouteGeneratorAgent",
+        version="1.0.0",
+        system=(
+            "You generate AT LEAST min_routes SUBSTANTIALLY DIFFERENT modeling "
+            "routes for the (sub-)problem. Different = different modeling APPROACH "
+            "(mechanistic, data_driven, optimization, simulation/stochastic, "
+            "network, hybrid) — NOT a hyper-parameter tweak of the same model. "
+            "Ground each route in a domain_model from the context where possible. "
+            "For every route give assumptions, advantages, limitations, risks, and "
+            "expected_metrics (problem_fit, modeling_depth, innovation, feasibility, "
+            "robustness, interpretability, each in [0,1])."
+        ),
+        forbidden=[
+            "produce routes that differ only superficially (same approach)",
+            "invent experimental results",
+            "ignore the provided domain_models",
+        ],
+        output_contract=(
+            "Output EXACTLY this JSON. Provide >= min_routes routes with DISTINCT "
+            "'approach' values:\n"
+            '{"routes": [{"route_id": "route_mechanistic", "name": "string", '
+            '"approach": "mechanistic", "family": "optimization", "summary": "string", '
+            '"domain_model_ids": ["model_id"], "method_ids": [], '
+            '"assumptions": ["string"], "advantages": ["string"], '
+            '"limitations": ["string"], "risks": ["string"], '
+            '"expected_metrics": {"problem_fit": 0.8, "modeling_depth": 0.8, '
+            '"innovation": 0.6, "feasibility": 0.7, "robustness": 0.7, '
+            '"interpretability": 0.7}, "subproblem_id": null}], "subproblem_id": null}\n'
+            "approach values: mechanistic, data_driven, optimization, stochastic, "
+            "network, hybrid"
+        ),
+    ),
     "competition_judge": _p(
         prompt_id="competition_judge",
         agent_name="CompetitionJudgeAgent",
