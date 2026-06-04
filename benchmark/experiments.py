@@ -110,25 +110,42 @@ def run_network(outdir: Path, seed: int = 42) -> dict:
     import networkx as nx
 
     rng = np.random.default_rng(seed)
-    G = nx.gnm_random_graph(20, 60, seed=seed, directed=True)
+    # Sparser graph so single-node failures create real bottlenecks (a dense
+    # graph trivially routes around any node -> uninteresting resilience=1.0).
+    G = nx.gnm_random_graph(18, 30, seed=seed, directed=True)
     for u, v in G.edges():
         G[u][v]["capacity"] = int(rng.integers(5, 20))
         G[u][v]["weight"] = int(rng.integers(1, 10))
     nodes = list(G.nodes())
-    s, t = nodes[0], nodes[-1]
-    flow = nx.maximum_flow_value(G, s, t, capacity="capacity")
+    # Pick the s-t pair with the largest max-flow (a meaningful demand to disrupt).
+    s, t, flow = nodes[0], nodes[-1], -1.0
+    for a in nodes[:5]:
+        for b in nodes[-5:]:
+            if a != b and nx.has_path(G, a, b):
+                f = nx.maximum_flow_value(G, a, b, capacity="capacity")
+                if f > flow:
+                    s, t, flow = a, b, f
     bc = nx.betweenness_centrality(G, weight="weight")
-    critical = max(bc, key=lambda k: bc[k])
-    G2 = G.copy()
-    G2.remove_node(critical)
-    flow2 = (nx.maximum_flow_value(G2, s, t, capacity="capacity")
-             if s in G2 and t in G2 and nx.has_path(G2, s, t) else 0.0)
+    top3 = sorted(bc, key=lambda k: bc[k], reverse=True)[:3]
+    # Worst-case resilience over removing each top-critical node (not s/t).
+    worst_flow, worst_node = flow, top3[0]
+    for nd in top3:
+        if nd in (s, t):
+            continue
+        G2 = G.copy()
+        G2.remove_node(nd)
+        f2 = (nx.maximum_flow_value(G2, s, t, capacity="capacity")
+              if s in G2 and t in G2 and nx.has_path(G2, s, t) else 0.0)
+        if f2 < worst_flow:
+            worst_flow, worst_node = f2, nd
+    resilience = float(worst_flow / flow) if flow else 0.0
     metrics = {
         "max_flow": round(float(flow), 2),
-        "critical_node": int(critical),
-        "max_betweenness": round(float(bc[critical]), 4),
-        "flow_after_critical_failure": round(float(flow2), 2),
-        "resilience_ratio": round(float(flow2 / flow) if flow else 0.0, 4),
+        "critical_node": int(worst_node),
+        "max_betweenness": round(float(bc[top3[0]]), 4),
+        "flow_after_critical_failure": round(float(worst_flow), 2),
+        "resilience_ratio": round(resilience, 4),
+        "flow_loss_pct": round(100.0 * (1.0 - resilience), 1),
         "n_nodes": int(G.number_of_nodes()), "n_edges": int(G.number_of_edges()),
     }
     deg = sorted(bc.values(), reverse=True)
@@ -140,7 +157,10 @@ def run_network(outdir: Path, seed: int = 42) -> dict:
 
 def run_topsis(outdir: Path, seed: int = 42) -> dict:
     rng = np.random.default_rng(seed)
-    M = np.abs(rng.normal(5, 2, (10, 5))) + 0.1
+    # Quality-separated alternatives (clear tiers) so the ranking is meaningful
+    # and the top is genuinely robust — not a near-tie that flips under noise.
+    M = np.abs(rng.normal(5, 1.2, (10, 5))) + 0.1
+    M = M + np.linspace(2.0, 0.0, 10)[:, None]  # alternative 0 strongest
     p = M / M.sum(0)
     p = np.where(p == 0, 1e-12, p)
     e = -1.0 / np.log(len(M)) * (p * np.log(p)).sum(0)

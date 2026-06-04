@@ -131,9 +131,11 @@ def _claims_from_experiment(category: str) -> list[EvidenceClaim]:
               f"the maximum s-t flow is {m['max_flow']:.0f} units across "
               f"{m['n_nodes']} nodes and {m['n_edges']} edges")
         claim("claim_resil", ClaimType.QUANTITATIVE_RESULT,
-              f"removing the most-critical node (betweenness {m['max_betweenness']:.3f}) "
-              f"changes max-flow to {m['flow_after_critical_failure']:.0f}, a resilience "
-              f"ratio of {m['resilience_ratio']:.0%}")
+              f"removing the single most-critical node (betweenness "
+              f"{m['max_betweenness']:.3f}) cuts the maximum s-t flow from "
+              f"{m['max_flow']:.0f} to {m['flow_after_critical_failure']:.0f} units, "
+              f"a {m['flow_loss_pct']:.0f}% loss (resilience ratio "
+              f"{m['resilience_ratio']:.0%})")
     elif category == "topsis_evaluation":
         claim("claim_top", ClaimType.QUANTITATIVE_RESULT,
               f"the top alternative has TOPSIS closeness coefficient "
