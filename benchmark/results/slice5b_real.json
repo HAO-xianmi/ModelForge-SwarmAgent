@@ -1,0 +1,13 @@
+{
+  "new_mean": 5.96,
+  "retuned": {
+    "network": {
+      "final": 5.75,
+      "llm": 3.65
+    },
+    "topsis_evaluation": {
+      "final": 5.1,
+      "llm": 3.6
+    }
+  }
+}
