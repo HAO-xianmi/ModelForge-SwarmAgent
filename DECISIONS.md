@@ -7,6 +7,21 @@ Records important decisions and deviations from the architecture spec
 
 ## Phase H — Quality rebuild (benchmark-gated)
 
+### D-H8: Domain-specific experiments produce real numbers (Slice 5)
+**Decision:** Each benchmark category runs a real, deterministic domain
+experiment (`benchmark/experiments.py`) — GBDT forecasting vs a seasonal-naive
+baseline; FAO-56 Penman-Monteith + soil-water balance + coverage layout;
+min-cost-flow + betweenness resilience; entropy-TOPSIS + weight-sensitivity. The
+harness converts the computed metrics into VERIFIED, artifact-linked
+EvidenceClaims; the writer cites only those. Inputs are synthesized
+deterministically (reproducible under a seed); the numbers are genuinely
+computed, never seeded.
+**Why:** Structurally strong reports still scored 5.85 because numbers were
+placeholders. Award-level requires real, specific, validated results. This closes
+the report↔experiment traceability gap (every number → metrics.json + figure)
+while preserving reproducibility and auditability. Gate: measured against the
+5.85 real-judge baseline.
+
 ### D-H7: Wire the rebuilt components into the live workflow, mock-safe
 **Decision:** `write_report` now uses CompetitionWriterAgent + per-sub-problem
 domain-model matching; `run_judge_panel` runs the RedTeam adversarial gate

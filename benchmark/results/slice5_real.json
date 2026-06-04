@@ -1,0 +1,32 @@
+{
+  "mean": 5.95,
+  "baseline_slice3": 5.85,
+  "by_category": {
+    "forecasting": {
+      "final": 6.57,
+      "struct": 9.08,
+      "llm": 4.9,
+      "chars": 18568
+    },
+    "irrigation": {
+      "final": 6.41,
+      "struct": 8.59,
+      "llm": 4.96,
+      "chars": 20309
+    },
+    "network": {
+      "final": 5.48,
+      "struct": 8.68,
+      "llm": 3.35,
+      "chars": 16145
+    },
+    "topsis_evaluation": {
+      "final": 5.34,
+      "struct": 8.34,
+      "llm": 3.34,
+      "chars": 20862
+    }
+  },
+  "provider": "openai",
+  "n_judges": 2
+}

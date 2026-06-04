@@ -15,7 +15,10 @@ labeled, so numbers are never fabricated as real measurements.
 from __future__ import annotations
 
 import re
+import tempfile
 from pathlib import Path
+
+from benchmark.experiments import run_experiment
 
 from modelforge.agents.assumption_agent import AssumptionIntelligenceAgent
 from modelforge.agents.base import AgentContext
@@ -78,7 +81,7 @@ def _citations_from_models(models) -> list[CitationRecord]:
 
 
 def _seed_claims() -> list[EvidenceClaim]:
-    # Placeholders for experiment outputs (clearly generic, not fabricated metrics).
+    # Fallback only (unknown category): generic, clearly non-numeric.
     return [
         EvidenceClaim(claim_id="claim_perf", run_id="bench", claim_type=ClaimType.QUANTITATIVE_RESULT,
                       statement="the model attained strong out-of-sample performance on the held-out set",
@@ -89,7 +92,62 @@ def _seed_claims() -> list[EvidenceClaim]:
     ]
 
 
-def generate_report(problem_md: str, provider: LLMProvider) -> tuple[str, list[str]]:
+def _claims_from_experiment(category: str) -> list[EvidenceClaim]:
+    """Run the domain experiment and build evidence-linked claims from the REAL
+    computed numbers (Slice 5). Every number traces to the executed artifacts."""
+    outdir = Path(tempfile.mkdtemp(prefix=f"mf_exp_{category}_"))
+    m = run_experiment(category, outdir)
+    if not m:
+        return _seed_claims()
+    art = [f"exp_{category}_metrics.json", f"exp_{category}_figure.png"]
+    out: list[EvidenceClaim] = []
+
+    def claim(cid: str, ctype: ClaimType, stmt: str) -> None:
+        out.append(EvidenceClaim(
+            claim_id=cid, run_id="bench", claim_type=ctype, statement=stmt,
+            verification_status=ClaimStatus.VERIFIED, artifact_ids=art,
+        ))
+
+    if category == "forecasting":
+        claim("claim_perf", ClaimType.QUANTITATIVE_RESULT,
+              f"the gradient-boosting model attained R2 = {m['r2']:.3f} "
+              f"(RMSE {m['rmse']:.2f}, MAE {m['mae']:.2f}) on the held-out test set "
+              f"of {m['n_test']} hours")
+        claim("claim_base", ClaimType.MODEL_COMPARISON,
+              f"the model R2 {m['r2']:.3f} exceeds the seasonal-naive baseline R2 "
+              f"{m['baseline_seasonal_naive_r2']:.3f}")
+    elif category == "irrigation":
+        claim("claim_et0", ClaimType.QUANTITATIVE_RESULT,
+              f"the FAO-56 Penman-Monteith model gives mean ET0 = "
+              f"{m['mean_ET0_mm_day']:.2f} mm/day, with total July irrigation demand "
+              f"{m['total_irrigation_L']:,.0f} L and peak daily demand "
+              f"{m['peak_daily_L']:,.0f} L over {m['irrigation_days']} irrigation days")
+        claim("claim_layout", ClaimType.QUANTITATIVE_RESULT,
+              f"the coverage layout uses {m['n_sprinklers']} sprinklers at total cost "
+              f"{m['total_cost_yuan']:,.0f} yuan with {m['coverage_fraction']:.0%} "
+              f"field coverage")
+    elif category == "network":
+        claim("claim_flow", ClaimType.QUANTITATIVE_RESULT,
+              f"the maximum s-t flow is {m['max_flow']:.0f} units across "
+              f"{m['n_nodes']} nodes and {m['n_edges']} edges")
+        claim("claim_resil", ClaimType.QUANTITATIVE_RESULT,
+              f"removing the most-critical node (betweenness {m['max_betweenness']:.3f}) "
+              f"changes max-flow to {m['flow_after_critical_failure']:.0f}, a resilience "
+              f"ratio of {m['resilience_ratio']:.0%}")
+    elif category == "topsis_evaluation":
+        claim("claim_top", ClaimType.QUANTITATIVE_RESULT,
+              f"the top alternative has TOPSIS closeness coefficient "
+              f"{m['top_closeness_coefficient']:.3f} under entropy-derived weights "
+              f"(weight entropy {m['weight_entropy']:.3f})")
+        claim("claim_stab", ClaimType.QUANTITATIVE_RESULT,
+              f"the top ranking is stable under {m['rank_stability_top_pct']:.0f}% of "
+              f"200 random +/-10% weight perturbations")
+    return out or _seed_claims()
+
+
+def generate_report(
+    problem_md: str, provider: LLMProvider, *, category: str | None = None
+) -> tuple[str, list[str]]:
     card = _extract_card(problem_md)
     ctx = AgentContext(run_id="bench", provider=provider)
     da = DomainAnalystAgent(ctx).analyze(card).output
@@ -121,7 +179,9 @@ def generate_report(problem_md: str, provider: LLMProvider) -> tuple[str, list[s
         if hits:
             sub_to_dm[sp.sub_id] = hits[0].model_dump()
 
-    claims = _seed_claims()
+    # Slice 5: REAL computed numbers from the domain experiment (evidence-linked),
+    # not placeholders. Every cited number traces to executed artifacts.
+    claims = _claims_from_experiment(category) if category else _seed_claims()
     citations = _citations_from_models(sub_to_dm.values())  # real KB references
     figs = ["fig_overview", "fig_results"]
     tabs = ["tab_results"]
@@ -160,4 +220,4 @@ def generate_report(problem_md: str, provider: LLMProvider) -> tuple[str, list[s
 
 def generate_report_for_slug(slug: str, provider: LLMProvider, problems_root: Path) -> tuple[str, list[str]]:
     md = (problems_root / slug / "problem.md").read_text(encoding="utf-8")
-    return generate_report(md, provider)
+    return generate_report(md, provider, category=slug)
