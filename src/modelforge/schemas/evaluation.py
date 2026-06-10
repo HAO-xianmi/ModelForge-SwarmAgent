@@ -101,3 +101,38 @@ class CompetitionJudgeReport(MFBaseModel):
     # Optional context when scored as part of a benchmark run.
     problem_slug: str | None = None
     tier: str | None = None
+
+
+class MethodFitReport(MFBaseModel):
+    """Pre-codegen gate result for one subproblem/candidate pairing."""
+
+    subproblem_id: str | None = None
+    candidate_id: str = ""
+    passed: bool
+    score: float = Field(default=0.0, ge=0.0, le=10.0)
+    issues: list[str] = Field(default_factory=list)
+    required_revisions: list[str] = Field(default_factory=list)
+    routing_hint: str = "proceed"
+
+
+class JudgeIssue(MFBaseModel):
+    """One deterministic final-panel issue with routing information."""
+
+    judge: str
+    severity: str = "major"  # info | minor | major | critical
+    message: str
+    routing_hint: str = "request_human_review"
+    subproblem_id: str | None = None
+    critical: bool = False
+
+
+class JudgePanelReport(MFBaseModel):
+    """Hard final-quality gate report used before checkpoint 3/export."""
+
+    final_score: float = Field(default=0.0, ge=0.0, le=10.0)
+    passed: bool = False
+    per_judge_scores: dict[str, float] = Field(default_factory=dict)
+    issues: list[JudgeIssue] = Field(default_factory=list)
+    revision_plan: list[str] = Field(default_factory=list)
+    routing_hints: list[str] = Field(default_factory=list)
+    threshold: float = 7.0

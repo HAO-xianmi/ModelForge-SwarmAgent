@@ -7,7 +7,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from benchmark.experiments import run_experiment
 from benchmark.generate import _claims_from_experiment
 

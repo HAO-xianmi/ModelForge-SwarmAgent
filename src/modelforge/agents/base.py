@@ -96,10 +96,14 @@ class BaseAgent(Generic[TOut]):
         context: dict,
         *,
         temperature: float = 0.2,
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
     ) -> AgentResult[TOut]:
         """Call the provider once, with a single repair retry on bad output."""
-        system, user = self.prompt.render(self.agent_key, context)
+        # Use simplified prompt for real LLMs; mock directive confuses some models.
+        if getattr(self.ctx.provider, "name", "mock") == "mock":
+            system, user = self.prompt.render(self.agent_key, context)
+        else:
+            system, user = self.prompt.render_for_real_llm(context)
         messages = [Message(role="system", content=system), Message(role="user", content=user)]
 
         last_error: str | None = None

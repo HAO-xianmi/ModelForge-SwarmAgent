@@ -8,10 +8,11 @@ entry; no code change. Empty tiers (e.g. ``average``) are skipped gracefully.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from modelforge.schemas.evaluation import KNOWN_TIERS
+from modelforge.schemas.evaluation import KNOWN_TIERS, PaperDocument
 from modelforge.services.evaluation.ingest import ingest_paper
 
 BENCHMARK_ROOT = Path(__file__).resolve().parent
@@ -64,7 +65,7 @@ def pending_tiers() -> dict[str, str]:
     return load_labels().get("tiers_pending", {})
 
 
-def load_corpus_documents():
+def load_corpus_documents() -> Iterator[tuple[CorpusEntry, PaperDocument]]:
     """Yield (entry, PaperDocument) for every discovered corpus paper."""
     for e in discover_corpus():
         doc = ingest_paper(

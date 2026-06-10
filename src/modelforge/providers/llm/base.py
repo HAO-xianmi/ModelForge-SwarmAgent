@@ -65,25 +65,18 @@ def extract_json(text: str) -> str:
     m = _JSON_BLOCK.search(text)
     if m:
         return m.group(1)
-    # Fall back to the first {...} or [...] spanning the text.
-    start = min(
-        (i for i in (text.find("{"), text.find("[")) if i != -1),
-        default=-1,
-    )
-    if start == -1:
-        return text
-    # Find the matching closing brace by scanning.
-    opening = text[start]
-    closing = "}" if opening == "{" else "]"
-    depth = 0
-    for i in range(start, len(text)):
-        if text[i] == opening:
-            depth += 1
-        elif text[i] == closing:
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-    return text[start:]
+    # All current agent schemas are JSON objects. Prefer object starts so a
+    # stray explanatory "[...]" does not get selected before the real payload.
+    decoder = json.JSONDecoder()
+    for opening in ("{", "["):
+        start = text.find(opening)
+        while start != -1:
+            try:
+                _, end = decoder.raw_decode(text[start:])
+                return text[start : start + end]
+            except json.JSONDecodeError:
+                start = text.find(opening, start + 1)
+    return text
 
 
 def parse_structured(text: str, schema: type[T]) -> T:

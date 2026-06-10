@@ -16,10 +16,11 @@ from __future__ import annotations
 
 import re
 import tempfile
+from collections.abc import Iterable
 from pathlib import Path
+from typing import Any
 
 from benchmark.experiments import run_experiment
-
 from modelforge.agents.assumption_agent import AssumptionIntelligenceAgent
 from modelforge.agents.base import AgentContext
 from modelforge.agents.competition_writer import CompetitionWriterAgent
@@ -30,7 +31,8 @@ from modelforge.agents.route_generator import RouteGeneratorAgent
 from modelforge.providers.llm.base import LLMProvider
 from modelforge.schemas.enums import CitationStatus, ClaimStatus, ClaimType
 from modelforge.schemas.evidence import CitationRecord, EvidenceClaim
-from modelforge.schemas.problem import ProblemCard, SubProblem
+from modelforge.schemas.problem import DomainAnalysis, ProblemCard, SubProblem
+from modelforge.schemas.report import ReportOutline
 from modelforge.services.method_library.domain_models import get_domain_model_library
 from modelforge.services.report.builder import ReportBuilder
 from modelforge.services.routes import RouteTournament
@@ -60,7 +62,7 @@ def _extract_card(problem_md: str) -> ProblemCard:
     )
 
 
-def _citations_from_models(models) -> list[CitationRecord]:
+def _citations_from_models(models: Iterable[dict[str, Any]]) -> list[CitationRecord]:
     """Build verified citations from the selected domain models' KB references
     (real published references — citation tracking, not invented)."""
     seen: set[str] = set()
@@ -83,12 +85,22 @@ def _citations_from_models(models) -> list[CitationRecord]:
 def _seed_claims() -> list[EvidenceClaim]:
     # Fallback only (unknown category): generic, clearly non-numeric.
     return [
-        EvidenceClaim(claim_id="claim_perf", run_id="bench", claim_type=ClaimType.QUANTITATIVE_RESULT,
-                      statement="the model attained strong out-of-sample performance on the held-out set",
-                      verification_status=ClaimStatus.VERIFIED),
-        EvidenceClaim(claim_id="claim_base", run_id="bench", claim_type=ClaimType.MODEL_COMPARISON,
-                      statement="the proposed model outperformed a simpler baseline",
-                      verification_status=ClaimStatus.VERIFIED),
+        EvidenceClaim(
+            claim_id="claim_perf",
+            run_id="bench",
+            claim_type=ClaimType.QUANTITATIVE_RESULT,
+            statement=(
+                "the model attained strong out-of-sample performance on the held-out set"
+            ),
+            verification_status=ClaimStatus.VERIFIED,
+        ),
+        EvidenceClaim(
+            claim_id="claim_base",
+            run_id="bench",
+            claim_type=ClaimType.MODEL_COMPARISON,
+            statement="the proposed model outperformed a simpler baseline",
+            verification_status=ClaimStatus.VERIFIED,
+        ),
     ]
 
 
@@ -152,7 +164,8 @@ def generate_report(
 ) -> tuple[str, list[str]]:
     card = _extract_card(problem_md)
     ctx = AgentContext(run_id="bench", provider=provider)
-    da = DomainAnalystAgent(ctx).analyze(card).output
+    da_result = DomainAnalystAgent(ctx).analyze(card)
+    da = da_result.output if da_result.ok and da_result.output is not None else DomainAnalysis()
     kb = get_domain_model_library()
     audit: list[str] = []
 
@@ -187,9 +200,12 @@ def generate_report(
     citations = _citations_from_models(sub_to_dm.values())  # real KB references
     figs = ["fig_overview", "fig_results"]
     tabs = ["tab_results"]
-    outline = PaperArchitectAgent(ctx).architect(
+    outline_result = PaperArchitectAgent(ctx).architect(
         card.title, claims, figs, tabs, citations, card
-    ).output
+    )
+    outline = outline_result.output if outline_result.ok else None
+    if outline is None:
+        outline = ReportOutline(title=card.title, template="competition")
     for s in outline.sections:
         if s.section_id.startswith("model_"):
             s.required_figure_ids = figs[:1]
@@ -220,6 +236,8 @@ def generate_report(
     return markdown, audit
 
 
-def generate_report_for_slug(slug: str, provider: LLMProvider, problems_root: Path) -> tuple[str, list[str]]:
+def generate_report_for_slug(
+    slug: str, provider: LLMProvider, problems_root: Path
+) -> tuple[str, list[str]]:
     md = (problems_root / slug / "problem.md").read_text(encoding="utf-8")
     return generate_report(md, provider, category=slug)

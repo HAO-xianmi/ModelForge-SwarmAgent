@@ -24,6 +24,7 @@ from modelforge.schemas.control import (
 )
 from modelforge.schemas.data import DataProfile
 from modelforge.schemas.enums import RunStatus
+from modelforge.schemas.evaluation import JudgePanelReport, MethodFitReport
 from modelforge.schemas.evidence import CitationRecord, EvidenceClaim
 from modelforge.schemas.experiment import (
     AuditSummary,
@@ -40,6 +41,7 @@ from modelforge.schemas.problem import (
     RetrievedMethod,
 )
 from modelforge.schemas.report import ReportArtifacts, ReportOutline
+from modelforge.schemas.route import ModelingRoute, RouteSet
 from modelforge.schemas.strategy import (
     JudgeReport,
     PilotExperiment,
@@ -89,6 +91,12 @@ class ModelingState(MFBaseModel):
     pilot_experiments: list[PilotExperiment] = Field(default_factory=list)
     selected_strategy: StrategyCandidate | None = None
     judge_reports: list[JudgeReport] = Field(default_factory=list)
+    subproblem_routes: dict[str, RouteSet] = Field(default_factory=dict)
+    subproblem_selected_routes: dict[str, ModelingRoute] = Field(default_factory=dict)
+    subproblem_experiments: dict[str, list[ExperimentRecord]] = Field(default_factory=dict)
+    subproblem_evidence: dict[str, list[EvidenceClaim]] = Field(default_factory=dict)
+    subproblem_sections: dict[str, str] = Field(default_factory=dict)
+    method_fit_reports: list[MethodFitReport] = Field(default_factory=list)
 
     data_profile: DataProfile | None = None
     code_artifacts: list[CodeArtifact] = Field(default_factory=list)
@@ -104,6 +112,7 @@ class ModelingState(MFBaseModel):
     report_artifacts: ReportArtifacts | None = None
     # Drafted section bodies keyed by section_id, between writer and assembly.
     section_texts: dict[str, str] = Field(default_factory=dict)
+    judge_panel_reports: list[JudgePanelReport] = Field(default_factory=list)
 
     blocking_issues: list[BlockingIssue] = Field(default_factory=list)
     pending_checkpoint: Checkpoint | None = None
@@ -124,5 +133,8 @@ class ModelingState(MFBaseModel):
             (p for p in self.pilot_experiments if p.strategy_id == strategy_id), None
         )
 
-    def verified_claims(self) -> list[EvidenceClaim]:
-        return [c for c in self.evidence_claims if c.usable_by_writer]
+    def verified_claims(self, subproblem_id: str | None = None) -> list[EvidenceClaim]:
+        claims = [c for c in self.evidence_claims if c.usable_by_writer]
+        if subproblem_id is not None:
+            return [c for c in claims if c.subproblem_id == subproblem_id]
+        return claims

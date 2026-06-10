@@ -10,9 +10,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from modelforge.providers.llm.mock import MockProvider
 from benchmark.datasets import list_problems
 from benchmark.generate import generate_report, generate_report_for_slug
+
+from modelforge.providers.llm.mock import MockProvider
 
 _ROOT = Path(__file__).resolve().parents[2] / "benchmark" / "problems"
 
@@ -20,13 +21,13 @@ _ROOT = Path(__file__).resolve().parents[2] / "benchmark" / "problems"
 def test_generate_runs_for_every_category():
     prov = MockProvider()
     for slug in list_problems():
-        md, audit = generate_report_for_slug(slug, prov, _ROOT)
+        md, _audit = generate_report_for_slug(slug, prov, _ROOT)
         assert md.strip(), f"{slug} produced empty report"
         assert "## " in md  # has sections
 
 
 def test_irrigation_report_is_decomposed_and_leak_free():
-    md, audit = generate_report_for_slug("irrigation", MockProvider(), _ROOT)
+    md, _audit = generate_report_for_slug("irrigation", MockProvider(), _ROOT)
     assert md.lower().count("sub-problem") >= 3  # multiple sub-problem sections
     assert "claim_" not in md  # no internal id leakage
     assert "[ev:" not in md

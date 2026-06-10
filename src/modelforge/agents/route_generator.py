@@ -62,8 +62,23 @@ class RouteGeneratorAgent(BaseAgent[RouteSet]):
             "methods": [m.method_id for m in methods],
         }
         result = self.run_structured(context, temperature=0.4, max_tokens=2048)
-        if result.ok and result.output is not None and subproblem is not None:
-            result.output.subproblem_id = subproblem.sub_id
+        if result.ok and result.output is not None:
+            result.output.subproblem_id = subproblem.sub_id if subproblem else None
+            required_outputs = (
+                subproblem.required_outputs if subproblem else problem_card.required_outputs
+            )
+            data_refs = subproblem.input_data_refs if subproblem else []
             for r in result.output.routes:
-                r.subproblem_id = subproblem.sub_id
+                if subproblem is not None:
+                    r.subproblem_id = subproblem.sub_id
+                if not r.model_family:
+                    r.model_family = r.approach
+                if not r.methods:
+                    r.methods = r.method_ids or r.domain_model_ids or [r.name]
+                if not r.data_needed:
+                    r.data_needed = data_refs or domain_analysis.data_requirements
+                if not r.outputs:
+                    r.outputs = required_outputs or problem_card.required_outputs
+                if not r.why_fit:
+                    r.why_fit = r.summary
         return result

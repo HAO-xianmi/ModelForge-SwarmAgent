@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -88,20 +89,38 @@ def _mock_generic(context: dict, prompt: str) -> dict:
 def _mock_problem_parser(context: dict, prompt: str) -> dict:
     text = context.get("problem_text", "") or "Untitled modeling problem"
     title = text.strip().splitlines()[0][:80] if text.strip() else "Modeling Problem"
-    # Family hint from keywords -> influences downstream domain analysis.
+    datasets = context.get("datasets", [])
+    if _looks_like_irrigation(text):
+        return _mock_irrigation_problem_card(text, title, datasets)
+
+    inferred = not _explicit_subproblem_markers(text)
     return {
         "title": title.replace("[problem:", "").replace("]", "").strip() or "Modeling Problem",
         "problem_summary": text.strip()[:400],
         "objective_summary": "Build a defensible model and report its performance.",
         "subproblems": [
-            {"sub_id": "sub_1", "statement": "Understand and formalize the task.", "objective": ""}
+            {
+                "sub_id": "sub_1",
+                "statement": "Understand and formalize the task.",
+                "objective": "produce a validated model and evidence-backed report",
+                "required_outputs": ["model", "metrics", "report"],
+                "input_data_refs": list(datasets),
+                "constraints": [],
+                "evaluation_criteria": ["evidence-backed validation"],
+                "expected_figures": ["primary result figure"],
+                "expected_tables": ["summary metrics table"],
+                "expected_equations": [],
+                "risk_of_misread": "collapsing the task into a generic method",
+                "inferred": inferred,
+            }
         ],
         "objectives": ["produce a validated model", "report evidence-backed results"],
         "decision_variables": [],
         "constraints": [],
+        "global_constraints": [],
         "datasets": [
             {"name": d, "description": "", "file_id": None}
-            for d in context.get("datasets", [])
+            for d in datasets
         ],
         "required_outputs": ["model", "metrics", "report"],
         "formatting_requirements": [],
@@ -109,7 +128,137 @@ def _mock_problem_parser(context: dict, prompt: str) -> dict:
         "ambiguities": [] if text.strip() else ["problem statement is empty"],
         "missing_information": [],
         "assumptions_to_confirm": ["data is representative of the target population"],
+        "forbidden_misreadings": [],
         "confidence": 0.85 if text.strip() else 0.3,
+        "source_map": [],
+    }
+
+
+def _contains_any(text: str, terms: tuple[str, ...]) -> bool:
+    lowered = text.lower()
+    return any(term in lowered for term in terms)
+
+
+def _looks_like_irrigation(text: str) -> bool:
+    terms = (
+        "irrigation",
+        "soil moisture",
+        "water balance",
+        "evapotranspiration",
+        "penman",
+        "\u704c\u6e89",
+        "\u571f\u58e4\u6c34\u5206",
+        "\u84b8\u6563",
+        "\u519c\u4e1a",
+    )
+    return _contains_any(text, terms)
+
+
+def _explicit_subproblem_markers(text: str) -> bool:
+    markers = (
+        "subproblem",
+        "problem 1",
+        "task 1",
+        "question 1",
+        "\u95ee\u98981",
+        "\u5c0f\u95ee",
+        "\uff081\uff09",
+        "(1)",
+    )
+    return _contains_any(text, markers)
+
+
+def _mock_irrigation_problem_card(text: str, title: str, datasets: list[str]) -> dict:
+    title = title.replace("[problem:", "").replace("]", "").strip() or (
+        "Agricultural Irrigation System Optimization"
+    )
+    dataset_refs = list(datasets)
+    return {
+        "title": title,
+        "background": "Agricultural irrigation planning under soil, weather, and cost constraints.",
+        "problem_summary": (
+            "Model an agricultural irrigation system by estimating soil moisture and "
+            "weather-driven water demand, then optimize irrigation scheduling and layout."
+        ),
+        "objective_summary": (
+            "Produce subproblem-specific water-balance, evapotranspiration, and "
+            "scheduling models with evidence-backed outputs."
+        ),
+        "subproblems": [
+            {
+                "sub_id": "P1",
+                "statement": (
+                    "Estimate soil moisture dynamics from historical soil and weather data."
+                ),
+                "objective": "predict soil moisture and identify drought risk",
+                "required_outputs": ["soil moisture prediction", "drought risk metric"],
+                "input_data_refs": dataset_refs,
+                "constraints": ["respect observed soil moisture ranges"],
+                "evaluation_criteria": ["RMSE or MAE on held-out soil moisture records"],
+                "expected_figures": ["soil moisture prediction curve"],
+                "expected_tables": ["prediction metric table"],
+                "expected_equations": ["soil water balance"],
+                "risk_of_misread": "treating soil moisture prediction as a generic benchmark task",
+                "inferred": False,
+            },
+            {
+                "sub_id": "P2",
+                "statement": (
+                    "Estimate weather-driven crop water demand using ET and rainfall signals."
+                ),
+                "objective": "compute evapotranspiration and net irrigation demand",
+                "required_outputs": ["ET estimate", "net irrigation requirement"],
+                "input_data_refs": dataset_refs,
+                "constraints": ["rainfall offsets irrigation demand"],
+                "evaluation_criteria": ["physically plausible ET and water balance terms"],
+                "expected_figures": ["ET and rainfall time series"],
+                "expected_tables": ["daily water demand table"],
+                "expected_equations": ["FAO-56 Penman-Monteith", "water balance"],
+                "risk_of_misread": "ignoring weather variables and fitting an unrelated optimizer",
+                "inferred": False,
+            },
+            {
+                "sub_id": "P3",
+                "statement": (
+                    "Optimize irrigation scheduling under water, cost, and drought-risk "
+                    "constraints."
+                ),
+                "objective": "choose timing and volume decisions for irrigation",
+                "required_outputs": ["irrigation schedule", "water use", "cost"],
+                "input_data_refs": dataset_refs,
+                "constraints": ["water availability", "soil moisture lower bound", "cost budget"],
+                "evaluation_criteria": ["feasible schedule with low cost and drought protection"],
+                "expected_figures": ["schedule and soil moisture trajectory"],
+                "expected_tables": ["irrigation decision table"],
+                "expected_equations": ["constrained scheduling optimization"],
+                "risk_of_misread": "using QUBO or quantum optimization without domain mapping",
+                "inferred": False,
+            },
+        ],
+        "objectives": [
+            "estimate soil moisture",
+            "estimate weather-driven crop water demand",
+            "optimize irrigation scheduling",
+        ],
+        "decision_variables": ["irrigation timing", "irrigation volume", "layout choice"],
+        "constraints": ["water balance", "soil moisture safety threshold", "cost budget"],
+        "global_constraints": ["use only evidence from provided data and registered artifacts"],
+        "datasets": [{"name": d, "description": "irrigation input data", "file_id": None}
+                     for d in datasets],
+        "required_outputs": ["ET estimate", "soil water balance", "irrigation schedule", "report"],
+        "formatting_requirements": [],
+        "variables": ["soil_moisture", "rainfall", "temperature", "ET0", "irrigation_amount"],
+        "ambiguities": [],
+        "missing_information": [],
+        "assumptions_to_confirm": [
+            "sensor measurements are comparable across days",
+            "daily weather aggregates are sufficient for ET estimation",
+        ],
+        "forbidden_misreadings": [
+            "Do not recast irrigation, soil, weather, or ET modeling as QUBO/quantum.",
+            "Do not claim state-of-the-art benchmark results without problem evidence.",
+        ],
+        "confidence": 0.9 if text.strip() else 0.3,
         "source_map": [],
     }
 
@@ -163,12 +312,13 @@ def _mock_strategy_proposer(context: dict, prompt: str) -> dict:
     # Pick a method consistent with the goal.
     method_id = _pick_method(goal, family, methods)
     template = context.get("template_for_method", {}).get(method_id, family)
+    subproblem_ids = context.get("subproblem_ids") or ["sub_1"]
     return {
         "strategy_id": context.get("strategy_id", f"strategy_{goal}_001"),
         "strategy_name": f"{goal.replace('_', ' ').title()} {family} pipeline",
         "design_goal": goal,
         "problem_family": family,
-        "subproblem_mapping": ["sub_1"],
+        "subproblem_mapping": subproblem_ids,
         "method_stack": [{"method_id": method_id, "role": "core_model", "rationale": goal}],
         "assumptions": ["data is clean enough after basic preprocessing"],
         "variable_definitions": [],
@@ -458,25 +608,68 @@ def _mock_paper_writer(context: dict, prompt: str) -> dict:
 
 
 _ROUTE_MERIT = {
-    "mechanistic": dict(problem_fit=0.85, modeling_depth=0.80, innovation=0.50,
-                        feasibility=0.80, robustness=0.70, interpretability=0.90),
-    "data_driven": dict(problem_fit=0.80, modeling_depth=0.75, innovation=0.55,
-                        feasibility=0.85, robustness=0.60, interpretability=0.50),
-    "optimization": dict(problem_fit=0.80, modeling_depth=0.80, innovation=0.50,
-                         feasibility=0.70, robustness=0.65, interpretability=0.70),
-    "stochastic": dict(problem_fit=0.75, modeling_depth=0.70, innovation=0.60,
-                       feasibility=0.70, robustness=0.85, interpretability=0.60),
-    "network": dict(problem_fit=0.80, modeling_depth=0.75, innovation=0.55,
-                    feasibility=0.75, robustness=0.70, interpretability=0.70),
-    "hybrid": dict(problem_fit=0.85, modeling_depth=0.85, innovation=0.75,
-                   feasibility=0.65, robustness=0.75, interpretability=0.60),
+    "mechanistic": {
+        "problem_fit": 0.85,
+        "modeling_depth": 0.80,
+        "innovation": 0.50,
+        "feasibility": 0.80,
+        "robustness": 0.70,
+        "interpretability": 0.90,
+    },
+    "data_driven": {
+        "problem_fit": 0.80,
+        "modeling_depth": 0.75,
+        "innovation": 0.55,
+        "feasibility": 0.85,
+        "robustness": 0.60,
+        "interpretability": 0.50,
+    },
+    "optimization": {
+        "problem_fit": 0.80,
+        "modeling_depth": 0.80,
+        "innovation": 0.50,
+        "feasibility": 0.70,
+        "robustness": 0.65,
+        "interpretability": 0.70,
+    },
+    "stochastic": {
+        "problem_fit": 0.75,
+        "modeling_depth": 0.70,
+        "innovation": 0.60,
+        "feasibility": 0.70,
+        "robustness": 0.85,
+        "interpretability": 0.60,
+    },
+    "network": {
+        "problem_fit": 0.80,
+        "modeling_depth": 0.75,
+        "innovation": 0.55,
+        "feasibility": 0.75,
+        "robustness": 0.70,
+        "interpretability": 0.70,
+    },
+    "hybrid": {
+        "problem_fit": 0.85,
+        "modeling_depth": 0.85,
+        "innovation": 0.75,
+        "feasibility": 0.65,
+        "robustness": 0.75,
+        "interpretability": 0.60,
+    },
 }
 
 
-def _route_from_model(rid: str, m: dict, approach: str, family: str, sub) -> dict:
+def _route_from_model(
+    rid: str, m: dict[str, Any], approach: str, family: str, sub: str | None
+) -> dict[str, Any]:
+    method_name = m.get("name", "domain model")
     return {
         "route_id": rid, "name": f"{m['name']} route", "approach": approach,
-        "family": family, "summary": m.get("summary", ""),
+        "family": family, "model_family": approach, "methods": [method_name],
+        "data_needed": ["problem-specific input data"],
+        "outputs": ["metrics", "figures", "tables"],
+        "why_fit": m.get("summary", "") or "grounded in a retrieved domain model",
+        "summary": m.get("summary", ""),
         "domain_model_ids": [m["model_id"]], "method_ids": [],
         "assumptions": m.get("assumptions") or ["the domain assumptions hold"],
         "advantages": m.get("advantages") or ["grounded in a validated domain model"],
@@ -524,6 +717,10 @@ def _mock_route_generator(context: dict, prompt: str) -> dict:
         routes.append({
             "route_id": f"route_method_{i}", "name": f"{mid} baseline route",
             "approach": "data_driven", "family": family,
+            "model_family": "data_driven", "methods": [mid],
+            "data_needed": ["tabular features and target or criteria"],
+            "outputs": ["metrics", "figures", "tables"],
+            "why_fit": f"{mid} provides a quick baseline for this sub-problem.",
             "summary": f"A route built on the generic {mid} method as a baseline.",
             "domain_model_ids": [], "method_ids": [mid],
             "assumptions": ["standard method assumptions hold"],

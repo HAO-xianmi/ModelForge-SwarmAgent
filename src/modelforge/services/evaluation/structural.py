@@ -37,9 +37,12 @@ _SUBPROBLEM = re.compile(
 )
 _EQUATION = re.compile(
     r"(?:\\begin\{(?:equation|align|gather)\}|\$\$|\\\[|\\frac|\\sum|\\sqrt|"
-    r"\\partial|\\times|≈|×\s*\d|=\s*[^=\n]{0,40}[+\-*/^]\s*[^=\n]{0,40})"
+    r"\\partial|\\times|\u2248|\u00d7\s*\d"
+    r"|=\s*[^=\n]{0,40}[+\-*/^]\s*[^=\n]{0,40})"
 )
-_NUMBERED_EQ = re.compile(r"(?:（\s*\d+(?:[.\-]\d+)?\s*）|\(\s*\d+(?:[.\-]\d+)?\s*\))")
+_NUMBERED_EQ = re.compile(
+    r"(?:\uff08\s*\d+(?:[.\-]\d+)?\s*\uff09|\(\s*\d+(?:[.\-]\d+)?\s*\))"
+)
 _TABLE = re.compile(r"(?:表\s*\d|\bTable\s*\d|\\begin\{table\}|\\begin\{tabular\})", re.IGNORECASE)
 _MD_TABLE_ROW = re.compile(r"^\s*\|.+\|\s*$", re.MULTILINE)
 _FIGURE = re.compile(
@@ -82,7 +85,10 @@ _CANONICAL_SECTIONS = {
     "abstract": r"(?:摘要|abstract)",
     "restatement": r"(?:问题重述|问题分析|introduction|problem statement|background)",
     "assumptions": r"(?:模型假设|假设|assumptions)",
-    "model": r"(?:模型(?:的)?建立|模型建立|model (?:formulation|construction)|methods?|methodology)",
+    "model": (
+        r"(?:模型(?:的)?建立|模型建立|model (?:formulation|construction)"
+        r"|methods?|methodology)"
+    ),
     "results": r"(?:求解|结果|results|experiments?)",
     "conclusion": r"(?:结论|模型评价|conclusion|discussion)",
     "references": r"(?:参考文献|references|bibliography)",
@@ -103,7 +109,7 @@ def _examples(pattern: re.Pattern[str], text: str, k: int = 3) -> list[str]:
 def extract_metrics(doc: PaperDocument) -> StructuralMetrics:
     text = doc.raw_text
 
-    n_sub = len(set(m.group(0).lower() for m in _SUBPROBLEM.finditer(text)))
+    n_sub = len({m.group(0).lower() for m in _SUBPROBLEM.finditer(text)})
     n_eq = len(_EQUATION.findall(text)) + len(_NUMBERED_EQ.findall(text))
     n_tables = len(_TABLE.findall(text)) + (
         1 if _MD_TABLE_ROW.search(text) else 0

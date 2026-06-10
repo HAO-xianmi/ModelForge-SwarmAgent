@@ -14,6 +14,7 @@ from modelforge.common.ids import new_claim_id
 from modelforge.schemas.enums import ClaimStatus, ClaimType
 from modelforge.schemas.evidence import CitationRecord, EvidenceClaim
 from modelforge.schemas.experiment import ExperimentRecord
+from modelforge.schemas.problem import SourceReference
 
 
 class EvidenceRegistry:
@@ -32,6 +33,12 @@ class EvidenceRegistry:
         experiment: ExperimentRecord,
         metric_name: str,
         artifact_ids: list[str] | None = None,
+        source_artifact_ids: list[str] | None = None,
+        subproblem_id: str | None = None,
+        metric_refs: list[str] | None = None,
+        table_refs: list[str] | None = None,
+        figure_refs: list[str] | None = None,
+        source_map: list[SourceReference] | None = None,
         claim_type: ClaimType = ClaimType.QUANTITATIVE_RESULT,
     ) -> EvidenceClaim:
         """Register a quantitative claim backed by a real experiment metric.
@@ -49,16 +56,23 @@ class EvidenceRegistry:
                 },
             )
         value = experiment.metrics[metric_name]
+        artifacts = source_artifact_ids or artifact_ids or []
         return EvidenceClaim(
             claim_id=new_claim_id(),
             run_id=run_id,
+            subproblem_id=subproblem_id,
             claim_type=claim_type,
             statement=statement,
             verification_status=ClaimStatus.PENDING,
             experiment_id=experiment.experiment_id,
             metric_name=metric_name,
             metric_value=value,
-            artifact_ids=artifact_ids or [],
+            artifact_ids=artifacts,
+            source_artifact_ids=artifacts,
+            metric_refs=metric_refs or [metric_name],
+            table_refs=table_refs or [],
+            figure_refs=figure_refs or [],
+            source_map=source_map or [],
         )
 
     def register_comparison(
@@ -71,17 +85,30 @@ class EvidenceRegistry:
         baseline_value: float,
         selected_value: float,
         artifact_ids: list[str] | None = None,
+        source_artifact_ids: list[str] | None = None,
+        subproblem_id: str | None = None,
+        metric_refs: list[str] | None = None,
+        table_refs: list[str] | None = None,
+        figure_refs: list[str] | None = None,
+        source_map: list[SourceReference] | None = None,
     ) -> EvidenceClaim:
+        artifacts = source_artifact_ids or artifact_ids or []
         claim = EvidenceClaim(
             claim_id=new_claim_id(),
             run_id=run_id,
+            subproblem_id=subproblem_id,
             claim_type=ClaimType.MODEL_COMPARISON,
             statement=statement,
             verification_status=ClaimStatus.PENDING,
             experiment_id=experiment.experiment_id,
             metric_name=metric_name,
             metric_value={"baseline": baseline_value, "selected_model": selected_value},
-            artifact_ids=artifact_ids or [],
+            artifact_ids=artifacts,
+            source_artifact_ids=artifacts,
+            metric_refs=metric_refs or [metric_name],
+            table_refs=table_refs or [],
+            figure_refs=figure_refs or [],
+            source_map=source_map or [],
         )
         return claim
 
@@ -92,17 +119,30 @@ class EvidenceRegistry:
         claim_type: ClaimType,
         *,
         artifact_ids: list[str] | None = None,
+        source_artifact_ids: list[str] | None = None,
+        subproblem_id: str | None = None,
+        metric_refs: list[str] | None = None,
+        table_refs: list[str] | None = None,
+        figure_refs: list[str] | None = None,
+        source_map: list[SourceReference] | None = None,
         citation_ids: list[str] | None = None,
         status: ClaimStatus = ClaimStatus.PENDING,
         source_notes: str = "",
     ) -> EvidenceClaim:
+        artifacts = source_artifact_ids or artifact_ids or []
         return EvidenceClaim(
             claim_id=new_claim_id(),
             run_id=run_id,
+            subproblem_id=subproblem_id,
             claim_type=claim_type,
             statement=statement,
             verification_status=status,
-            artifact_ids=artifact_ids or [],
+            artifact_ids=artifacts,
+            source_artifact_ids=artifacts,
+            metric_refs=metric_refs or [],
+            table_refs=table_refs or [],
+            figure_refs=figure_refs or [],
+            source_map=source_map or [],
             citation_ids=citation_ids or [],
             source_notes=source_notes,
         )

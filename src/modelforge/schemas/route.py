@@ -19,6 +19,11 @@ class ModelingRoute(MFBaseModel):
     name: str
     approach: str  # mechanistic | data_driven | optimization | simulation | hybrid | network
     family: ProblemFamily
+    model_family: str = ""
+    methods: list[str] = Field(default_factory=list)
+    data_needed: list[str] = Field(default_factory=list)
+    outputs: list[str] = Field(default_factory=list)
+    why_fit: str = ""
     summary: str
     domain_model_ids: list[str] = Field(default_factory=list)
     method_ids: list[str] = Field(default_factory=list)

@@ -121,7 +121,7 @@ class LLMJudgePanel:
                     max_tokens=2048,
                 )
                 raw = parse_structured(resp.text, _RawVote)
-            except Exception as exc:  # noqa: BLE001 — one bad judge must not abort
+            except Exception as exc:
                 notes.append(f"judge {judge_id} failed: {type(exc).__name__}")
                 continue
             votes.append(

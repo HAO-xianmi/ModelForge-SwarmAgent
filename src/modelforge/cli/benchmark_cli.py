@@ -8,6 +8,7 @@ source checkout without installing the suite as a wheel.
 from __future__ import annotations
 
 import sys
+from contextlib import suppress
 from pathlib import Path
 
 import typer
@@ -17,10 +18,8 @@ from rich.console import Console
 # the report's unicode (CJK evidence spans, math symbols). Force UTF-8 so the
 # CLI never crashes on output; degrade unencodable chars rather than raising.
 for _stream in (sys.stdout, sys.stderr):
-    try:
+    with suppress(AttributeError, ValueError):
         _stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
-    except (AttributeError, ValueError):
-        pass
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(_REPO_ROOT) not in sys.path:
@@ -35,7 +34,10 @@ console = Console()
 
 @benchmark_app.command()
 def calibrate(
-    provider: str = typer.Option("mock", help="mock (default, deterministic) | real | openai | anthropic | deepseek"),
+    provider: str = typer.Option(
+        "mock",
+        help="mock (default, deterministic) | real | openai | anthropic | deepseek",
+    ),
     judges: int = typer.Option(3, help="number of LLM judges in the panel"),
     margin: float = typer.Option(2.0, help="required min(award) - max(weak) separation"),
     out: Path | None = typer.Option(None, help="write a JSON result to this path"),

@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 
 from modelforge.agents.base import AgentResult, BaseAgent
-from modelforge.schemas.competition import RedTeamFinding, RedTeamReport
+from modelforge.schemas.competition import RedTeamReport
 
 
 class RedTeamAgent(BaseAgent[RedTeamReport]):
@@ -33,11 +33,15 @@ class RedTeamAgent(BaseAgent[RedTeamReport]):
 
 def _signals(md: str) -> dict:
     t = md.lower()
+
     def has(*ks: str) -> bool:
         return any(k in t for k in ks)
+
     return {
         "has_baseline": has("baseline", "基线", "对比模型"),
-        "has_validation": has("cross-validation", "交叉验证", "rmse", "r2", "r²", "held-out", "test set"),
+        "has_validation": has(
+            "cross-validation", "交叉验证", "rmse", "r2", "r²", "held-out", "test set"
+        ),
         "has_sensitivity": has("sensitivity", "灵敏度", "robustness", "鲁棒性"),
         "has_assumptions": bool(re.search(r"assumption\s*\d|假设[一二三四五\d]", t)),
         "mentions_overfit_control": has("regulariz", "cross-validation", "overfit", "held-out"),

@@ -48,6 +48,11 @@ def test_each_route_records_tradeoffs_and_expected_metrics():
     res = RouteGeneratorAgent(_ctx()).generate(card, da)
     for r in res.output.routes:
         assert r.assumptions and r.advantages and r.limitations
+        assert r.model_family
+        assert r.methods
+        assert r.data_needed
+        assert r.outputs
+        assert r.why_fit
         assert r.expected_metrics
         for k in ("problem_fit", "modeling_depth", "innovation"):
             assert k in r.expected_metrics

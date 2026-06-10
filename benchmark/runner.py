@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from statistics import mean
 
+from benchmark.datasets import discover_corpus, load_corpus_documents, pending_tiers
 from modelforge.providers.llm.base import LLMProvider
 from modelforge.providers.llm.mock import MockProvider
 from modelforge.schemas.evaluation import (
@@ -22,8 +23,6 @@ from modelforge.schemas.evaluation import (
 )
 from modelforge.services.evaluation.ingest import ingest_paper
 from modelforge.services.evaluation.judge import CompetitionJudge
-
-from benchmark.datasets import discover_corpus, load_corpus_documents, pending_tiers
 
 DEFAULT_MARGIN = 2.0
 
@@ -128,7 +127,9 @@ def calibrate(
         if weak and not (average.mean > weak.mean):
             ordering_ok = False
     else:
-        notes.append("average tier empty (pending real samples); ordering checked over award vs weak")
+        notes.append(
+            "average tier empty (pending real samples); ordering checked over award vs weak"
+        )
 
     return CalibrationResult(
         provider=getattr(prov, "name", provider),
@@ -165,10 +166,9 @@ def generate_and_score(
     slug: str, *, provider: str = "mock", n_judges: int = 3
 ) -> CompetitionJudgeReport:
     """Generate a report for a benchmark problem via the rebuilt path and score it."""
-    from modelforge.services.evaluation.ingest import ingest_text
-
     from benchmark.datasets import PROBLEMS_ROOT
     from benchmark.generate import generate_report_for_slug
+    from modelforge.services.evaluation.ingest import ingest_text
 
     prov = make_provider(provider)
     markdown, _audit = generate_report_for_slug(slug, prov, PROBLEMS_ROOT)

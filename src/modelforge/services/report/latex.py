@@ -18,8 +18,10 @@ _log = get_logger("modelforge.latex")
 
 
 class LatexBuilder:
-    def __init__(self, compiler: str = "pdflatex") -> None:
-        self.compiler = compiler
+    def __init__(self, compiler: str | None = None) -> None:
+        # XeLaTeX handles UTF-8/CJK contest reports; fall back to pdfLaTeX for
+        # minimal installations.
+        self.compiler = compiler or ("xelatex" if shutil.which("xelatex") else "pdflatex")
 
     def available(self) -> bool:
         return shutil.which(self.compiler) is not None
@@ -63,12 +65,14 @@ class LatexBuilder:
                     ],
                     capture_output=True,
                     text=True,
+                    encoding="utf-8",
+                    errors="replace",
                     timeout=120,
                     check=False,
                 )
             except (subprocess.SubprocessError, OSError) as exc:
                 return None, f"compilation error: {exc}"
-            log_parts.append(proc.stdout[-4000:])
+            log_parts.append((proc.stdout or "")[-4000:])
             if proc.returncode != 0:
                 pdf = out_dir / f"{basename}.pdf"
                 # pdflatex may still emit a partial PDF; only accept if present

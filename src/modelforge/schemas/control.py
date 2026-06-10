@@ -85,6 +85,10 @@ class BudgetState(MFBaseModel):
     model_revision_count: int = 0
     code_debug_count: int = 0
     report_revision_count: int = 0
+    paper_revision_count: int = 0
+    method_reroute_count: int = 0
+    judge_retry_count: int = 0
+    max_quality_revisions: int = 2
     citation_retry_count: int = 0
     total_loop_count: int = 0
     warnings: list[str] = Field(default_factory=list)

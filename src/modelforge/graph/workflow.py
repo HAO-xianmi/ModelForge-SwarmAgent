@@ -14,16 +14,19 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from modelforge.common.errors import FailureType
 from modelforge.common.logging import get_logger
 from modelforge.graph import nodes
 from modelforge.graph.control import BudgetManager, CheckpointManager, LoopGuard
 from modelforge.graph.deps import WorkflowDeps
+from modelforge.schemas.control import FailureState
 from modelforge.schemas.enums import (
     ActorType,
     CheckpointId,
     EventType,
     RunStatus,
 )
+from modelforge.schemas.evaluation import JudgePanelReport
 from modelforge.schemas.state import ModelingState
 
 _log = get_logger("modelforge.workflow")
@@ -50,6 +53,7 @@ _NODES: dict[RunStatus, NodeFn] = {
     RunStatus.WRITING_REPORT: nodes.write_report,
     RunStatus.VERIFYING_CITATIONS: nodes.verify_citations,
     RunStatus.RUNNING_JUDGE_PANEL: nodes.run_judge_panel,
+    RunStatus.REPORT_REPAIR: nodes.repair_report,
 }
 
 # Statuses that pause for a human checkpoint.
@@ -144,6 +148,11 @@ class Workflow:
     # Routing (conditional edges + loop protection, spec 14.3/14.4)
     # ------------------------------------------------------------------ #
     def _route(self, state: ModelingState, current: RunStatus, proposed: RunStatus) -> RunStatus:
+        if current is RunStatus.RUNNING_JUDGE_PANEL:
+            report = _latest_judge_report(state)
+            if report is not None and not report.passed:
+                return self._route_judge_failure(state, report)
+
         if proposed is RunStatus.FAILED:
             return RunStatus.FAILED
 
@@ -168,6 +177,68 @@ class Workflow:
             return self._escalate_status(state, "audit blocking issues unresolved")
 
         return proposed
+
+    def _route_judge_failure(
+        self, state: ModelingState, report: JudgePanelReport
+    ) -> RunStatus:
+        hint = report.routing_hints[0] if report.routing_hints else "request_human_review"
+
+        if hint == "repair_latex":
+            # Repairable LaTeX/structure defect -> deterministic REPORT_REPAIR
+            # stage, bounded by the quality-revision budget so a recurring defect
+            # can never loop forever (and never silently COMPLETE).
+            bs = state.budget_state
+            if bs.paper_revision_count >= bs.max_quality_revisions:
+                return self._fail_quality_gate(
+                    state,
+                    "report repair budget exhausted (repair_latex kept recurring)",
+                    failure_type=FailureType.BUDGET_FAILURE,
+                )
+            bs.paper_revision_count += 1
+            bs.report_revision_count += 1
+            bs.total_loop_count += 1
+            state.failure_state = None
+            return RunStatus.REPORT_REPAIR
+        if hint == "request_human_review":
+            return self._fail_quality_gate(
+                state,
+                "judge requested human review before export",
+                failure_type=FailureType.QUALITY_GATE_FAILURE,
+            )
+
+        bs = state.budget_state
+        if bs.judge_retry_count >= bs.max_quality_revisions:
+            return self._fail_quality_gate(
+                state,
+                "quality revision budget exhausted",
+                failure_type=FailureType.BUDGET_FAILURE,
+            )
+
+        bs.judge_retry_count += 1
+        bs.total_loop_count += 1
+        state.failure_state = None
+
+        if hint == "reparse_problem":
+            return RunStatus.PARSING
+        if hint == "reroute_method":
+            bs.method_reroute_count += 1
+            bs.model_revision_count += 1
+            return RunStatus.GENERATING_STRATEGIES
+        if hint == "regenerate_code":
+            bs.code_debug_count += 1
+            return RunStatus.GENERATING_CODE
+        if hint == "rerun_experiment":
+            return RunStatus.RUNNING_SANDBOX
+        if hint == "rewrite_section":
+            bs.paper_revision_count += 1
+            bs.report_revision_count += 1
+            return RunStatus.WRITING_REPORT
+
+        return self._fail_quality_gate(
+            state,
+            f"unknown judge routing hint: {hint}",
+            failure_type=FailureType.QUALITY_GATE_FAILURE,
+        )
 
     # ------------------------------------------------------------------ #
     # Checkpoints
@@ -216,11 +287,13 @@ class Workflow:
                 "candidates": [c.strategy_id for c in state.strategy_candidates],
                 "pilot_success": {p.strategy_id: p.succeeded for p in state.pilot_experiments},
             }
+        judge_report = _latest_judge_report(state)
         return {
             "report_markdown_id": state.report_artifacts.markdown_artifact_id
             if state.report_artifacts
             else None,
             "verified_claims": len(state.verified_claims()),
+            "judge_panel_passed": judge_report.passed if judge_report else False,
             "disclosure_required": self.deps.compliance.disclosure_required(),
         }
 
@@ -255,6 +328,26 @@ class Workflow:
         self._escalate(state, reason)
         return RunStatus.FAILED
 
+    def _fail_quality_gate(
+        self,
+        state: ModelingState,
+        reason: str,
+        *,
+        failure_type: FailureType,
+    ) -> RunStatus:
+        state.failure_state = FailureState(
+            failure_type=failure_type,
+            stage=state.status.value,
+            detail=reason,
+            recommended_actions=["inspect judge_panel_reports[-1].revision_plan"],
+            escalated=failure_type is FailureType.BUDGET_FAILURE,
+        )
+        state.status = RunStatus.FAILED
+        self.deps.run_repo.audit.record(
+            state.run_id, EventType.ESCALATION_CREATED, payload={"reason": reason}
+        )
+        return RunStatus.FAILED
+
     def _finalize(self, state: ModelingState) -> None:
         if state.status is RunStatus.COMPLETED:
             self.deps.run_repo.audit.record(state.run_id, EventType.RUN_COMPLETED)
@@ -271,6 +364,22 @@ class Workflow:
         from pathlib import Path
 
         from modelforge.schemas.enums import ArtifactType
+
+        report = _latest_judge_report(state)
+        if report is None or not report.passed:
+            detail = (
+                "export blocked: no passing JudgePanelReport"
+                if report is None
+                else f"export blocked: JudgePanel failed with score {report.final_score:.2f}"
+            )
+            self._fail_quality_gate(
+                state,
+                detail,
+                failure_type=FailureType.QUALITY_GATE_FAILURE,
+            )
+            self._persist(state, detail)
+            self._finalize(state)
+            return state
 
         nodes.build_report_files(state, self.deps)
         disclosure_required = self.deps.compliance.disclosure_required()
@@ -350,3 +459,7 @@ def build_langgraph(deps: WorkflowDeps) -> object:  # pragma: no cover - topolog
         graph.add_edge(a.value, b.value)
     graph.add_edge(order[-1].value, END)
     return graph.compile()
+
+
+def _latest_judge_report(state: ModelingState) -> JudgePanelReport | None:
+    return state.judge_panel_reports[-1] if state.judge_panel_reports else None

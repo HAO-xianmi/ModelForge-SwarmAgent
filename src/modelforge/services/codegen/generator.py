@@ -86,7 +86,7 @@ class CodeGenerator:
     ) -> str:
         # Templates use literal sentinel tokens (no str.format) so the embedded
         # Python f-strings and dict literals are left untouched.
-        if template == "prediction":
+        if template in ("prediction", "regression"):
             kind = model_kind or "linear_regression"
             return PREDICTION_MAIN.replace("__MODEL_KIND__", kind)
         if template == "classification":

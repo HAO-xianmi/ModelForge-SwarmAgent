@@ -105,7 +105,7 @@ class ReportBuilder:
                         ClaimMapEntry(
                             section_id=section.section_id,
                             claim_id=cid,
-                            evidence_artifact_ids=claim_index[cid].artifact_ids,
+                            evidence_artifact_ids=claim_index[cid].all_artifact_ids,
                         )
                     )
                 return seen[cid]
@@ -257,11 +257,14 @@ def _markdown_to_latex(markdown: str) -> str:
             continue
 
         if line.startswith("#### "):
-            close_itemize(); out.append(r"\subsubsection*{" + _tex_escape(line[5:]) + "}")
+            close_itemize()
+            out.append(r"\subsubsection*{" + _tex_escape(line[5:]) + "}")
         elif line.startswith("### "):
-            close_itemize(); out.append(r"\subsection*{" + _tex_escape(line[4:]) + "}")
+            close_itemize()
+            out.append(r"\subsection*{" + _tex_escape(line[4:]) + "}")
         elif line.startswith("## "):
-            close_itemize(); out.append(r"\section*{" + _tex_escape(line[3:]) + "}")
+            close_itemize()
+            out.append(r"\section*{" + _tex_escape(line[3:]) + "}")
         elif line.startswith("# "):
             pass  # title handled by \maketitle
         elif line.startswith("![") and "](" in line:

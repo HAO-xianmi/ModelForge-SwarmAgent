@@ -28,7 +28,7 @@ DOMAIN_MODELS: list[DomainModel] = [
         summary="Physically-based reference evapotranspiration ET0 from energy "
         "balance + aerodynamics; the FAO standard for irrigation demand.",
         governing_equations=[
-            r"ET_0 = \frac{0.408\,\Delta\,(R_n-G) + \gamma\,\frac{900}{T+273}\,u_2\,(e_s-e_a)}{\Delta + \gamma(1+0.34 u_2)}",
+            r"ET_0 = \frac{0.408\,\Delta\,(R_n-G) + \gamma\,\frac{900}{T+273}\,u_2\,(e_s-e_a)}{\Delta + \gamma(1+0.34 u_2)}",  # noqa: E501
             r"e_s = 0.6108\,\exp\!\left(\frac{17.27 T}{T+237.3}\right)",
             r"ET_c = K_c \cdot ET_0",
         ],
@@ -56,10 +56,10 @@ DOMAIN_MODELS: list[DomainModel] = [
         name="Soil Water Balance / Irrigation Requirement",
         category="mechanistic",
         families=[P.OPTIMIZATION, P.DIFFERENTIAL_EQUATIONS, P.PREDICTION],
-        summary="Daily root-zone water balance: irrigation need = max(0, demand − "
+        summary="Daily root-zone water balance: irrigation need = max(0, demand - "
         "effective rainfall) with a survival-threshold floor.",
         governing_equations=[
-            r"I_t = \begin{cases}(0.22 - SM_t)\rho_{soil} d_{soil} & SM_t < 0.22\\ \max(0, ET_c - R_t) & \text{otherwise}\end{cases}",
+            r"I_t = \begin{cases}(0.22 - SM_t)\rho_{soil} d_{soil} & SM_t < 0.22\\ \max(0, ET_c - R_t) & \text{otherwise}\end{cases}",  # noqa: E501
             r"SM(x,y,t{+}1)=SM(x,y,t)+\frac{R(t)-ET(t)+I_{total}(x,y,t)}{V_{soil}\rho_w}",
         ],
         assumptions=["uniform soil properties", "fixed survival moisture threshold",
@@ -85,7 +85,7 @@ DOMAIN_MODELS: list[DomainModel] = [
         summary="Receding-horizon optimal control: at each step optimize over an "
         "H-day forecast, execute the first action, then roll forward.",
         governing_equations=[
-            r"\min_{u}\; J=\sum_{k=t}^{t+H-1}\!\iint (P_S\,\mathrm{dev}_S + P_G\,\mathrm{dev}_G)\,dx\,dy",
+            r"\min_{u}\; J=\sum_{k=t}^{t+H-1}\!\iint (P_S\,\mathrm{dev}_S + P_G\,\mathrm{dev}_G)\,dx\,dy",  # noqa: E501
             r"\text{s.t. } \sum_j q_{s_j}(k)+\sum_k q_{rTk}(k) \le 0.8\,Q_{design}",
         ],
         assumptions=["reasonably accurate short-horizon forecast",
@@ -137,8 +137,8 @@ DOMAIN_MODELS: list[DomainModel] = [
         summary="Two-state wet/dry Markov chain for rain occurrence with Gamma-"
         "distributed rainfall amounts; drives Monte-Carlo risk analysis.",
         governing_equations=[
-            r"P(\text{wet}_t\mid\text{wet}_{t-1})=p_{ww},\quad R_t\sim \mathrm{Gamma}(\alpha,\beta)",
-            r"D_I=0.7\frac{\min(1,\max(0,\sum ET-\sum R))}{100}+0.3\frac{\min(1,\text{max dry run})}{31}",
+            r"P(\text{wet}_t\mid\text{wet}_{t-1})=p_{ww},\quad R_t\sim \mathrm{Gamma}(\alpha,\beta)",  # noqa: E501
+            r"D_I=0.7\frac{\min(1,\max(0,\sum ET-\sum R))}{100}+0.3\frac{\min(1,\text{max dry run})}{31}",  # noqa: E501
         ],
         assumptions=["first-order Markov occurrence", "Gamma amount distribution",
                      "stationary parameters within a season"],
@@ -214,7 +214,7 @@ DOMAIN_MODELS: list[DomainModel] = [
         summary="Quantify how a ranking moves under weight perturbation and "
         "leave-one-indicator-out, identifying robust vs unstable alternatives.",
         governing_equations=[
-            r"\text{rank-stability}_i = 1 - \frac{\#\{\text{perturbations changing }rank_i\}}{N_{perturb}}",
+            r"\text{rank-stability}_i = 1 - \frac{\#\{\text{perturbations changing }rank_i\}}{N_{perturb}}",  # noqa: E501
         ],
         assumptions=["perturbation distribution is reasonable", "ranking model fixed"],
         applicability=["robustness of any MCDA ranking", "decision defensibility"],
@@ -259,7 +259,7 @@ DOMAIN_MODELS: list[DomainModel] = [
         summary="Rank critical nodes/edges (betweenness) and quantify performance "
         "loss under failure to drive a budget-constrained hardening plan.",
         governing_equations=[
-            r"g(v)=\sum_{s\ne t}\frac{\sigma_{st}(v)}{\sigma_{st}},\quad \text{Resilience}=1-\frac{\Delta\text{served}}{\text{served}_0}",
+            r"g(v)=\sum_{s\ne t}\frac{\sigma_{st}(v)}{\sigma_{st}},\quad \text{Resilience}=1-\frac{\Delta\text{served}}{\text{served}_0}",  # noqa: E501
         ],
         assumptions=["failure model (edge/node removal) is representative"],
         applicability=["critical-infrastructure analysis", "robust network design"],
@@ -298,7 +298,10 @@ DOMAIN_MODELS: list[DomainModel] = [
                               "encode wind direction with sin/cos", "never use future leakage"],
         typical_competition_usage="Prediction Q1 (e.g. soil moisture, demand).",
         references=["Chen & Guestrin, XGBoost (2016)", "Friedman, Gradient Boosting (2001)"],
-        keywords=["forecast", "prediction", "xgboost", "gradient boosting", "feature", "lag", "rolling", "soil moisture"],
+        keywords=[
+            "forecast", "prediction", "xgboost", "gradient boosting", "feature",
+            "lag", "rolling", "soil moisture",
+        ],
     ),
     _m(
         model_id="seasonal_decomposition_intervals",
@@ -321,7 +324,10 @@ DOMAIN_MODELS: list[DomainModel] = [
                               "report when the model fails (holidays/extremes)"],
         typical_competition_usage="Forecasting Q with required baseline + intervals.",
         references=["Hyndman & Athanasopoulos, Forecasting: Principles & Practice"],
-        keywords=["forecast", "seasonal", "time series", "prediction interval", "uncertainty", "demand"],
+        keywords=[
+            "forecast", "seasonal", "time series", "prediction interval",
+            "uncertainty", "demand",
+        ],
     ),
 ]
 

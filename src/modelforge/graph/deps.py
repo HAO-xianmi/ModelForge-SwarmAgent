@@ -15,6 +15,7 @@ from modelforge.providers.llm.base import LLMProvider
 from modelforge.services.citations import CitationRegistry
 from modelforge.services.codegen import CodeGenerator
 from modelforge.services.compliance import ComplianceEngine
+from modelforge.services.evaluation import JudgePanel
 from modelforge.services.evidence import EvidenceRegistry
 from modelforge.services.experiments import (
     BaselineRunner,
@@ -55,6 +56,7 @@ class WorkflowDeps:
     robustness: RobustnessRunner = field(init=False)
     auditor: ExperimentAuditor = field(init=False)
     evidence: EvidenceRegistry = field(init=False)
+    judge_panel: JudgePanel = field(init=False)
     citations: CitationRegistry = field(init=False)
     report_builder: ReportBuilder = field(init=False)
     latex: LatexBuilder = field(init=False)
@@ -71,6 +73,7 @@ class WorkflowDeps:
         self.robustness = RobustnessRunner(self.experiment_runner, self.codegen)
         self.auditor = ExperimentAuditor()
         self.evidence = EvidenceRegistry()
+        self.judge_panel = JudgePanel()
         self.citations = CitationRegistry()
         self.report_builder = ReportBuilder()
         self.latex = LatexBuilder()

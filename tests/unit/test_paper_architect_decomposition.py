@@ -22,10 +22,26 @@ def _card() -> ProblemCard:
     return ProblemCard(
         title="Agricultural Irrigation System Optimization",
         subproblems=[
-            SubProblem(sub_id="P1", statement="Predict soil moisture from weather", objective="forecast 5cm_SM"),
-            SubProblem(sub_id="P2", statement="Design minimum-cost irrigation layout", objective="min cost"),
-            SubProblem(sub_id="P3", statement="Dynamic drought scheduling and reserve", objective="max survival"),
-            SubProblem(sub_id="P4", statement="Multi-period adaptation plan", objective="adapt May-July"),
+            SubProblem(
+                sub_id="P1",
+                statement="Predict soil moisture from weather",
+                objective="forecast 5cm_SM",
+            ),
+            SubProblem(
+                sub_id="P2",
+                statement="Design minimum-cost irrigation layout",
+                objective="min cost",
+            ),
+            SubProblem(
+                sub_id="P3",
+                statement="Dynamic drought scheduling and reserve",
+                objective="max survival",
+            ),
+            SubProblem(
+                sub_id="P4",
+                statement="Multi-period adaptation plan",
+                objective="adapt May-July",
+            ),
         ],
         assumptions_to_confirm=["flat terrain", "uniform soil"],
         variables=["It", "Vk(t)"],

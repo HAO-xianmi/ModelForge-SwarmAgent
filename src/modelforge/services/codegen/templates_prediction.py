@@ -59,8 +59,17 @@ def main():
     features = [c for c in numeric.columns if c != target]
     if not features:
         raise SystemExit("no numeric feature columns available for prediction")
-    X = numeric[features].fillna(numeric[features].median())
-    y = numeric[target]
+    X = numeric[features].replace([np.inf, -np.inf], np.nan)
+    X = X.dropna(axis=1, how="all")
+    if X.empty:
+        raise SystemExit("no usable numeric feature columns available for prediction")
+    X = X.fillna(X.median()).fillna(0.0)
+    y = numeric[target].replace([np.inf, -np.inf], np.nan)
+    valid = y.notna()
+    X = X.loc[valid]
+    y = y.loc[valid]
+    if len(y) < 4:
+        raise SystemExit("not enough non-missing target rows for prediction")
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.25, random_state=SEED

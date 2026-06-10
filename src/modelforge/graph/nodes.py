@@ -13,6 +13,7 @@ from modelforge.agents import (
     MethodRetrieverAgent,
     PaperArchitectAgent,
     ProblemParserAgent,
+    RouteGeneratorAgent,
     SkepticAgent,
     StrategyJudgeAgent,
     StrategyProposerAgent,
@@ -35,9 +36,13 @@ from modelforge.schemas.enums import (
     RunStatus,
     StrategyGoal,
 )
-from modelforge.schemas.evidence import CitationRecord
+from modelforge.schemas.evidence import CitationRecord, EvidenceClaim
+from modelforge.schemas.experiment import ExperimentRecord
+from modelforge.schemas.problem import SourceReference, SubProblem
 from modelforge.schemas.report import ReportArtifacts
 from modelforge.schemas.state import ModelingState
+from modelforge.services.evaluation import MethodFitGate
+from modelforge.services.routes import RouteTournament
 
 _log = get_logger("modelforge.workflow.nodes")
 
@@ -108,6 +113,23 @@ def retrieve_methods(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
 
 def generate_strategies(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
     assert state.problem_card and state.domain_analysis
+    state.subproblem_routes = {}
+    state.subproblem_selected_routes = {}
+    tournament = RouteTournament()
+    for subproblem in state.problem_card.subproblems:
+        ctx = deps.agent_context(state.run_id)
+        route_res = RouteGeneratorAgent(ctx).generate(
+            state.problem_card, state.domain_analysis, subproblem=subproblem
+        )
+        _record_calls(state, ctx)
+        if route_res.ok and route_res.output is not None:
+            route_set = route_res.output
+            state.subproblem_routes[subproblem.sub_id] = route_set
+            selected = tournament.run(route_set).selected_route_id
+            route = next((r for r in route_set.routes if r.route_id == selected), None)
+            if route is not None:
+                state.subproblem_selected_routes[subproblem.sub_id] = route
+
     candidates = []
     for goal in _PROPOSER_GOALS:
         ctx = deps.agent_context(state.run_id)
@@ -185,6 +207,9 @@ def profile_data(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
 def generate_code(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
     if state.selected_strategy is None:
         return _fail(state, FailureType.CODE_FAILURE, "generate_code", "no strategy")
+    fit_failure = _run_method_fit_gate(state)
+    if fit_failure:
+        return _fail(state, FailureType.QUALITY_GATE_FAILURE, "method_fit_gate", fit_failure)
     ctx = deps.agent_context(state.run_id)
     res = CodeAuthorAgent(ctx, deps.codegen).author(state.selected_strategy)
     _record_calls(state, ctx)
@@ -265,41 +290,83 @@ def register_evidence(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
     if formal and formal.status is ExperimentStatus.SUCCEEDED:
         family = state.selected_strategy.problem_family
         primary = _primary_metric(family)
+        subproblems = state.problem_card.subproblems if state.problem_card else []
+        targets: list[SubProblem | None] = list(subproblems) if subproblems else [None]
+        evidence_artifacts = _experiment_source_artifacts(formal)
         if primary and primary in formal.metrics:
-            claim = deps.evidence.register_quantitative(
-                state.run_id,
-                f"The selected model achieved {primary} = {formal.metrics[primary]:.4f}.",
-                experiment=formal,
-                metric_name=primary,
-                artifact_ids=formal.figure_artifact_ids + formal.table_artifact_ids,
-            )
-            claims.append(deps.evidence.verify(claim, state.experiment_records))
+            for subproblem in targets:
+                statement = (
+                    f"For subproblem {subproblem.sub_id}, the selected model achieved "
+                    f"{primary} = {formal.metrics[primary]:.4f}."
+                    if subproblem is not None
+                    else (
+                        f"The selected model achieved "
+                        f"{primary} = {formal.metrics[primary]:.4f}."
+                    )
+                )
+                claim = deps.evidence.register_quantitative(
+                    state.run_id,
+                    statement,
+                    experiment=formal,
+                    metric_name=primary,
+                    artifact_ids=evidence_artifacts,
+                    subproblem_id=subproblem.sub_id if subproblem else None,
+                    metric_refs=[primary],
+                    table_refs=formal.table_artifact_ids,
+                    figure_refs=formal.figure_artifact_ids,
+                    source_map=_source_map_for_subproblem(subproblem),
+                )
+                claims.append(deps.evidence.verify(claim, state.experiment_records))
         # Model comparison vs baseline.
         baseline = state.baseline_results[0] if state.baseline_results else None
         if baseline and primary in baseline.metrics and primary in formal.metrics:
-            comp = deps.evidence.register_comparison(
-                state.run_id,
-                f"The selected model's {primary} ({formal.metrics[primary]:.4f}) vs baseline "
-                f"({baseline.metrics[primary]:.4f}).",
-                experiment=formal,
-                metric_name=primary,
-                baseline_value=baseline.metrics[primary],
-                selected_value=formal.metrics[primary],
-            )
-            claims.append(deps.evidence.verify(comp, state.experiment_records))
+            for subproblem in targets:
+                prefix = (
+                    f"For subproblem {subproblem.sub_id}, "
+                    if subproblem is not None
+                    else "The selected model's "
+                )
+                comp = deps.evidence.register_comparison(
+                    state.run_id,
+                    f"{prefix}{primary} ({formal.metrics[primary]:.4f}) vs baseline "
+                    f"({baseline.metrics[primary]:.4f}).",
+                    experiment=formal,
+                    metric_name=primary,
+                    baseline_value=baseline.metrics[primary],
+                    selected_value=formal.metrics[primary],
+                    artifact_ids=evidence_artifacts,
+                    subproblem_id=subproblem.sub_id if subproblem else None,
+                    metric_refs=[primary],
+                    table_refs=formal.table_artifact_ids,
+                    figure_refs=formal.figure_artifact_ids,
+                    source_map=_source_map_for_subproblem(subproblem),
+                )
+                claims.append(deps.evidence.verify(comp, state.experiment_records))
         # Robustness conclusion.
         robust = state.robustness_results[0] if state.robustness_results else None
         if robust and robust.status is ExperimentStatus.SUCCEEDED:
             std_key = f"{primary}_std"
             if std_key in robust.summary:
-                rc = deps.evidence.register_qualitative(
-                    state.run_id,
-                    f"Across repeated seeds, {primary} varied with std "
-                    f"{robust.summary[std_key]:.4f}, indicating stability.",
-                    ClaimType.ROBUSTNESS_CONCLUSION,
-                    status=ClaimStatus.VERIFIED,
-                )
-                claims.append(rc)
+                for subproblem in targets:
+                    prefix = (
+                        f"For subproblem {subproblem.sub_id}, "
+                        if subproblem is not None
+                        else ""
+                    )
+                    rc = deps.evidence.register_qualitative(
+                        state.run_id,
+                        f"{prefix}across repeated seeds, {primary} varied with std "
+                        f"{robust.summary[std_key]:.4f}, indicating stability.",
+                        ClaimType.ROBUSTNESS_CONCLUSION,
+                        artifact_ids=evidence_artifacts,
+                        subproblem_id=subproblem.sub_id if subproblem else None,
+                        metric_refs=[std_key],
+                        table_refs=formal.table_artifact_ids,
+                        figure_refs=formal.figure_artifact_ids,
+                        source_map=_source_map_for_subproblem(subproblem),
+                        status=ClaimStatus.VERIFIED,
+                    )
+                    claims.append(rc)
     # Data description claim (always available, qualitative).
     if state.data_profile:
         claims.append(
@@ -308,10 +375,16 @@ def register_evidence(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
                 f"The dataset has {state.data_profile.row_count} rows and "
                 f"{state.data_profile.column_count} columns.",
                 ClaimType.DATA_DESCRIPTION,
+                artifact_ids=(
+                    [f.artifact_id for f in state.input_manifest.files if f.artifact_id]
+                    if state.input_manifest
+                    else []
+                ),
                 status=ClaimStatus.VERIFIED,
             )
         )
     state.evidence_claims = claims
+    state.subproblem_evidence = _group_claims_by_subproblem(claims)
     # Citations from the selected strategy's methods.
     state.citations = _build_citations(state, deps)
     return RunStatus.ARCHITECTING_REPORT
@@ -383,22 +456,113 @@ def verify_citations(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
 
 
 def run_judge_panel(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
-    # Final gate: verified evidence must exist, and the adversarial RedTeam reviews
-    # the assembled draft (Slice 4: the "full panel" the stub promised). Advisory
-    # in-workflow — findings are logged; a future slice can hard-gate export.
-    if not state.verified_claims():
-        _log.warning("judge panel: no verified claims for run %s", state.run_id)
-    draft = "\n\n".join(state.section_texts.values())
-    if draft.strip():
-        ctx = deps.agent_context(state.run_id)
-        rt = RedTeamAgent(ctx).review(draft)
-        _record_calls(state, ctx)
-        if rt.ok and rt.output is not None:
-            _log.info(
-                "red-team: verdict=%s findings=%d", rt.output.verdict,
-                len(rt.output.findings),
-            )
-    return RunStatus.WAITING_FOR_CHECKPOINT_3
+    if state.report_outline is None:
+        return _fail(state, FailureType.INTERNAL_ERROR, "run_judge_panel", "no outline")
+
+    title = state.problem_card.title if state.problem_card else "Modeling Report"
+    markdown, _claim_map = deps.report_builder.build_markdown(
+        title,
+        state.report_outline,
+        state.section_texts,
+        state.evidence_claims,
+        state.citations,
+    )
+    latex_source = deps.report_builder.build_latex(title, markdown, state.citations)
+    report = deps.judge_panel.evaluate(
+        state, markdown=markdown, latex_source=latex_source
+    )
+    state.judge_panel_reports.append(report)
+    _log.info(
+        "judge panel: passed=%s final_score=%.2f issues=%d hints=%s",
+        report.passed,
+        report.final_score,
+        len(report.issues),
+        ",".join(report.routing_hints),
+    )
+    if report.passed:
+        # Advisory adversarial RedTeam review on the accepted draft (Slice 4: the
+        # "full panel" the stub promised). Findings are logged for the human
+        # reviewer at checkpoint 3; the deterministic panel above is the hard gate.
+        if not state.verified_claims():
+            _log.warning("judge panel: no verified claims for run %s", state.run_id)
+        draft = "\n\n".join(state.section_texts.values())
+        if draft.strip():
+            ctx = deps.agent_context(state.run_id)
+            rt = RedTeamAgent(ctx).review(draft)
+            _record_calls(state, ctx)
+            if rt.ok and rt.output is not None:
+                _log.info(
+                    "red-team: verdict=%s findings=%d",
+                    rt.output.verdict,
+                    len(rt.output.findings),
+                )
+        return RunStatus.WAITING_FOR_CHECKPOINT_3
+    detail = (
+        f"judge panel failed with score {report.final_score:.2f}: "
+        + "; ".join(report.revision_plan[:4])
+    )
+    _log.warning(detail)
+    # The workflow router inspects the latest report's hints. A repairable LaTeX
+    # defect is routed to REPORT_REPAIR (bounded by the quality budget); other
+    # failures fall through to the existing quality-gate handling.
+    return RunStatus.FAILED
+
+
+def repair_report(state: ModelingState, deps: WorkflowDeps) -> RunStatus:
+    """Deterministic report-repair stage (no LLM).
+
+    Rebuilds the markdown/LaTeX from the existing outline + section drafts via the
+    ``ReportBuilder``, which strips internal claim-id leaks, drops references to
+    unverified claims, and emits well-formed LaTeX (balanced environments, proper
+    document structure). On success the run returns to RUNNING_JUDGE_PANEL for
+    re-evaluation. Content the repair cannot synthesize — an empty outline or
+    empty section bodies — is an unrecoverable structural dead-end and fails fast
+    with a recorded reason (QUALITY_GATE_FAILURE), not a wasted budget loop.
+    """
+    from modelforge.schemas.enums import ArtifactType
+
+    outline = state.report_outline
+    if outline is None or not outline.sections:
+        return _fail(
+            state,
+            FailureType.QUALITY_GATE_FAILURE,
+            "repair_report",
+            "cannot repair report: empty outline (no sections to rebuild)",
+        )
+    if not any(text.strip() for text in state.section_texts.values()):
+        return _fail(
+            state,
+            FailureType.QUALITY_GATE_FAILURE,
+            "repair_report",
+            "cannot repair report: empty section_texts (no drafted content)",
+        )
+
+    title = state.problem_card.title if state.problem_card else "Modeling Report"
+    # build_markdown drops unverified/illegal [claim:id] refs and strips leaked
+    # internal claim ids; build_latex re-renders a structurally valid document.
+    markdown, claim_map = deps.report_builder.build_markdown(
+        title, outline, state.section_texts, state.evidence_claims, state.citations
+    )
+    latex_source = deps.report_builder.build_latex(title, markdown, state.citations)
+
+    md_art = deps.registry.register_text(
+        state.run_id, ArtifactType.REPORT_MARKDOWN, "report.md", markdown
+    )
+    tex_art = deps.registry.register_text(
+        state.run_id, ArtifactType.REPORT_LATEX, "report.tex", latex_source
+    )
+    state.report_artifacts = ReportArtifacts(
+        markdown_artifact_id=md_art.artifact_id,
+        latex_artifact_id=tex_art.artifact_id,
+        claim_map=claim_map,
+    )
+    state.failure_state = None
+    _log.info(
+        "report repair: rebuilt markdown+latex for run %s (revision %d)",
+        state.run_id,
+        state.budget_state.paper_revision_count,
+    )
+    return RunStatus.RUNNING_JUDGE_PANEL
 
 
 def build_report_files(state: ModelingState, deps: WorkflowDeps) -> None:
@@ -471,6 +635,81 @@ def _primary_metric(family: ProblemFamily) -> str:
         ProblemFamily.GRAPH: "n_nodes",
         ProblemFamily.SIMULATION: "estimate_mean",
     }.get(family, "")
+
+
+def _experiment_source_artifacts(record: ExperimentRecord) -> list[str]:
+    return list(
+        dict.fromkeys(
+            [
+                *record.output_artifact_ids,
+                *record.table_artifact_ids,
+                *record.figure_artifact_ids,
+                *record.log_artifact_ids,
+            ]
+        )
+    )
+
+
+def _source_map_for_subproblem(subproblem: SubProblem | None) -> list[SourceReference]:
+    if subproblem is not None and subproblem.source is not None:
+        return [subproblem.source]
+    return []
+
+
+def _group_claims_by_subproblem(
+    claims: list[EvidenceClaim],
+) -> dict[str, list[EvidenceClaim]]:
+    grouped: dict[str, list[EvidenceClaim]] = {}
+    for claim in claims:
+        if claim.subproblem_id:
+            grouped.setdefault(claim.subproblem_id, []).append(claim)
+    return grouped
+
+
+def _run_method_fit_gate(state: ModelingState) -> str:
+    if state.problem_card is None or state.selected_strategy is None:
+        return ""
+    gate = MethodFitGate()
+    reports = []
+    subproblems = state.problem_card.subproblems or []
+    if not subproblems:
+        return ""
+    available = (
+        [f.normalized_name for f in state.input_manifest.files]
+        if state.input_manifest
+        else []
+    )
+    for subproblem in subproblems:
+        reports.append(
+            gate.evaluate(
+                state.problem_card,
+                subproblem,
+                state.selected_strategy,
+                available_input_files=available,
+                method_library_hits=state.retrieved_methods,
+            )
+        )
+        route = state.subproblem_selected_routes.get(subproblem.sub_id)
+        if route is not None:
+            reports.append(
+                gate.evaluate(
+                    state.problem_card,
+                    subproblem,
+                    route,
+                    available_input_files=available,
+                    method_library_hits=state.retrieved_methods,
+                )
+            )
+    state.method_fit_reports = reports
+    failed = [r for r in reports if not r.passed]
+    if not failed:
+        return ""
+    worst = sorted(failed, key=lambda r: r.score)[0]
+    return (
+        f"method-fit failed for {worst.subproblem_id or 'global'} "
+        f"candidate={worst.candidate_id} score={worst.score}: "
+        + "; ".join(worst.issues)
+    )
 
 
 def _build_citations(state: ModelingState, deps: WorkflowDeps) -> list[CitationRecord]:

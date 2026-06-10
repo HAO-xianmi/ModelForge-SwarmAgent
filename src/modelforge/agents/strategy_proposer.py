@@ -48,6 +48,8 @@ class StrategyProposerAgent(BaseAgent[StrategyCandidate]):
             "candidate_methods": method_ids,
             "template_for_method": template_for_method,
             "objectives": problem_card.objectives,
+            "subproblem_ids": [sp.sub_id for sp in problem_card.subproblems],
+            "forbidden_misreadings": problem_card.forbidden_misreadings,
         }
         result = self.run_structured(context, temperature=0.4)
         # Defense in depth: guarantee a runnable template even if the model omits it.

@@ -9,11 +9,12 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from modelforge.common.timeutil import utcnow
 from modelforge.schemas.base import MFBaseModel
 from modelforge.schemas.enums import CitationStatus, ClaimStatus, ClaimType
+from modelforge.schemas.problem import SourceReference
 
 
 class EvidenceClaim(MFBaseModel):
@@ -26,6 +27,7 @@ class EvidenceClaim(MFBaseModel):
 
     claim_id: str
     run_id: str
+    subproblem_id: str | None = None
     claim_type: ClaimType
     statement: str
     verification_status: ClaimStatus = ClaimStatus.PENDING
@@ -33,10 +35,26 @@ class EvidenceClaim(MFBaseModel):
     metric_name: str | None = None
     metric_value: dict | float | None = None
     artifact_ids: list[str] = Field(default_factory=list)
+    source_artifact_ids: list[str] = Field(default_factory=list)
+    metric_refs: list[str] = Field(default_factory=list)
+    table_refs: list[str] = Field(default_factory=list)
+    figure_refs: list[str] = Field(default_factory=list)
+    source_map: list[SourceReference] = Field(default_factory=list)
     citation_ids: list[str] = Field(default_factory=list)
     verified_by: str | None = None
     source_notes: str = ""
     created_at: datetime = Field(default_factory=utcnow)
+
+    @model_validator(mode="after")
+    def _sync_artifact_aliases(self) -> EvidenceClaim:
+        """Keep legacy ``artifact_ids`` and explicit source ids compatible."""
+        if self.artifact_ids and not self.source_artifact_ids:
+            object.__setattr__(self, "source_artifact_ids", list(self.artifact_ids))
+        elif self.source_artifact_ids and not self.artifact_ids:
+            object.__setattr__(self, "artifact_ids", list(self.source_artifact_ids))
+        if self.metric_name and not self.metric_refs:
+            object.__setattr__(self, "metric_refs", [self.metric_name])
+        return self
 
     @property
     def is_quantitative(self) -> bool:
@@ -55,6 +73,10 @@ class EvidenceClaim(MFBaseModel):
             ClaimStatus.VERIFIED,
             ClaimStatus.NEEDS_HUMAN_REVIEW,
         }
+
+    @property
+    def all_artifact_ids(self) -> list[str]:
+        return list(dict.fromkeys([*self.source_artifact_ids, *self.artifact_ids]))
 
 
 class CitationRecord(MFBaseModel):

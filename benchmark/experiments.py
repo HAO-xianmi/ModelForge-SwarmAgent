@@ -14,15 +14,16 @@ from __future__ import annotations
 import json
 import math
 from pathlib import Path
+from typing import Any
 
 import matplotlib
 import numpy as np
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
 
-def _save(outdir: Path, metrics: dict, fig) -> dict:
+def _save(outdir: Path, metrics: dict[str, float | int], fig: Any) -> dict[str, float | int]:
     outdir.mkdir(parents=True, exist_ok=True)
     fig.savefig(outdir / "figure.png", dpi=110, bbox_inches="tight")
     plt.close(fig)
@@ -57,12 +58,13 @@ def run_forecasting(outdir: Path, seed: int = 42) -> dict:
         "rmse": round(float(mean_squared_error(yte, pred) ** 0.5), 4),
         "mae": round(float(mean_absolute_error(yte, pred)), 4),
         "baseline_seasonal_naive_r2": round(float(r2_score(yte, base_pred)), 4),
-        "n_test": int(len(yte)), "n_features": int(len(feats)),
+        "n_test": len(yte), "n_features": len(feats),
     }
     fig, ax = plt.subplots(figsize=(7, 3))
     ax.plot(yte.to_numpy()[:168], label="actual")
     ax.plot(np.asarray(pred)[:168], label="forecast")
-    ax.legend(); ax.set_title("Forecast vs actual (1 week)")
+    ax.legend()
+    ax.set_title("Forecast vs actual (1 week)")
     return _save(outdir, metrics, fig)
 
 
@@ -102,7 +104,8 @@ def run_irrigation(outdir: Path, seed: int = 42) -> dict:
     }
     fig, ax = plt.subplots(figsize=(7, 3))
     ax.bar(range(days), irr_L, color="#2a9d8f")
-    ax.set_title("Daily irrigation demand (L)"); ax.set_xlabel("day")
+    ax.set_title("Daily irrigation demand (L)")
+    ax.set_xlabel("day")
     return _save(outdir, metrics, fig)
 
 
@@ -185,7 +188,7 @@ def run_topsis(outdir: Path, seed: int = 42) -> dict:
         "top_alternative": top,
         "weight_entropy": round(float(-(w * np.log(w + 1e-12)).sum()), 4),
         "rank_stability_top_pct": round(100.0 * stable / N, 1),
-        "n_alternatives": int(len(M)), "n_criteria": int(M.shape[1]),
+        "n_alternatives": len(M), "n_criteria": int(M.shape[1]),
     }
     fig, ax = plt.subplots(figsize=(7, 3))
     order = np.argsort(-C)

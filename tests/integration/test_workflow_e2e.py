@@ -102,6 +102,7 @@ def test_practice_mode_runs_to_completion_without_checkpoints(coordinator) -> No
     formal = final.experiment_records[-1]
     assert formal.metrics  # produced by executed code
     assert final.verified_claims()  # evidence registered + verified
+    assert final.judge_panel_reports and final.judge_panel_reports[-1].passed
 
     # A report and a reproducibility bundle were produced.
     assert final.report_artifacts is not None
@@ -129,10 +130,13 @@ def test_bundle_contains_required_files(coordinator) -> None:
     data = Path(final.export_state.bundle_path).read_bytes()
     with zipfile.ZipFile(io.BytesIO(data)) as zf:
         names = set(zf.namelist())
+        judge_reports = zf.read("quality/judge_panel_reports.json")
     assert "report.md" in names
     assert "report.tex" in names
     assert "reproducibility_manifest.json" in names
     assert "artifact_manifest.json" in names
+    assert "quality/judge_panel_reports.json" in names
+    assert b'"passed": true' in judge_reports
     assert any(n.startswith("figures/") for n in names)
     assert any(n.startswith("code/") for n in names)
 

@@ -14,6 +14,7 @@ from modelforge.agents.method_retriever import MethodRetrieverAgent
 from modelforge.agents.paper_architect import PaperArchitectAgent
 from modelforge.agents.paper_writer import PaperWriterAgent
 from modelforge.agents.problem_parser import ProblemParserAgent
+from modelforge.agents.route_generator import RouteGeneratorAgent
 from modelforge.agents.skeptic import SkepticAgent
 from modelforge.agents.strategy_judge import StrategyJudgeAgent
 from modelforge.agents.strategy_proposer import StrategyProposerAgent
@@ -29,6 +30,7 @@ __all__ = [
     "PaperArchitectAgent",
     "PaperWriterAgent",
     "ProblemParserAgent",
+    "RouteGeneratorAgent",
     "SkepticAgent",
     "StrategyJudgeAgent",
     "StrategyProposerAgent",

@@ -91,6 +91,8 @@ class SubprocessSandboxRunner:
                 env=env,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 timeout=request.timeout_seconds,
                 preexec_fn=_limit_resources(request) if os.name != "nt" else None,
                 check=False,

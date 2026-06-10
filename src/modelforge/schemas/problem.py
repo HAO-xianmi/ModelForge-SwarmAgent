@@ -6,7 +6,9 @@ Spec references: 8.1 (ProblemParserAgent), 8.2 (DomainAnalystAgent),
 
 from __future__ import annotations
 
-from pydantic import Field
+from typing import Any
+
+from pydantic import Field, model_validator
 
 from modelforge.schemas.base import MFBaseModel
 from modelforge.schemas.enums import MethodCategory, ProblemFamily
@@ -56,11 +58,32 @@ class SourceReference(MFBaseModel):
     line_reference: str | None = None
     quote: str = ""
 
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_llm_aliases(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            normalized = dict(data)
+            if "source" in normalized and "source_file" not in normalized:
+                normalized["source_file"] = normalized.pop("source")
+            if "sub_id" in normalized and "line_reference" not in normalized:
+                normalized["line_reference"] = normalized.pop("sub_id")
+            return normalized
+        return data
+
 
 class SubProblem(MFBaseModel):
     sub_id: str
     statement: str
     objective: str = ""
+    required_outputs: list[str] = Field(default_factory=list)
+    input_data_refs: list[str] = Field(default_factory=list)
+    constraints: list[str] = Field(default_factory=list)
+    evaluation_criteria: list[str] = Field(default_factory=list)
+    expected_figures: list[str] = Field(default_factory=list)
+    expected_tables: list[str] = Field(default_factory=list)
+    expected_equations: list[str] = Field(default_factory=list)
+    risk_of_misread: str = ""
+    inferred: bool = False
     source: SourceReference | None = None
 
 
@@ -84,6 +107,7 @@ class ProblemCard(MFBaseModel):
     objectives: list[str] = Field(default_factory=list)
     decision_variables: list[str] = Field(default_factory=list)
     constraints: list[str] = Field(default_factory=list)
+    global_constraints: list[str] = Field(default_factory=list)
     datasets: list[DatasetRef] = Field(default_factory=list)
     required_outputs: list[str] = Field(default_factory=list)
     formatting_requirements: list[str] = Field(default_factory=list)
@@ -91,6 +115,7 @@ class ProblemCard(MFBaseModel):
     ambiguities: list[str] = Field(default_factory=list)
     missing_information: list[str] = Field(default_factory=list)
     assumptions_to_confirm: list[str] = Field(default_factory=list)
+    forbidden_misreadings: list[str] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     source_map: list[SourceReference] = Field(default_factory=list)
 

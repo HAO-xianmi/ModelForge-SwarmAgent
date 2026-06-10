@@ -30,14 +30,28 @@ def main():
     train, test = series[:split], series[split:]
     if len(test) == 0:
         test = train[-2:]
-    # Holt-Winters / exponential smoothing via statsmodels.
-    try:
-        from statsmodels.tsa.holtwinters import ExponentialSmoothing
-        model = ExponentialSmoothing(train, trend="add").fit()
-        forecast = model.forecast(len(test))
-    except Exception:
-        # Naive last-value fallback (still a real computation, clearly recorded).
-        forecast = pd.Series([train.iloc[-1]] * len(test), index=test.index)
+    # Lightweight deterministic trend + seasonal-residual extrapolation. This
+    # avoids heavyweight optimizer startup while still computing a real forecast.
+    y_train = train.to_numpy(dtype=float)
+    x_train = np.arange(len(y_train), dtype=float)
+    if len(y_train) >= 2:
+        slope, intercept = np.polyfit(x_train, y_train, 1)
+    else:
+        slope, intercept = 0.0, float(y_train[-1])
+    x_future = np.arange(len(y_train), len(y_train) + len(test), dtype=float)
+    trend = intercept + slope * x_future
+
+    seasonal = np.zeros(len(test), dtype=float)
+    period = min(12, max(2, len(y_train) // 4))
+    if len(y_train) >= period * 2:
+        fitted_trend = intercept + slope * x_train
+        residual = y_train - fitted_trend
+        pattern = np.array([
+            residual[np.arange(i, len(residual), period)].mean()
+            for i in range(period)
+        ])
+        seasonal = pattern[(x_future.astype(int)) % period]
+    forecast = pd.Series(trend + seasonal, index=test.index)
 
     rmse = float(np.sqrt(mean_squared_error(test, forecast)))
     mae = float(mean_absolute_error(test, forecast))

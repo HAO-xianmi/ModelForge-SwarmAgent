@@ -182,8 +182,9 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, f1_score
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.datasets import load_iris
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from sklearn.preprocessing import StandardScaler
 import matplotlib
 matplotlib.use("Agg")
@@ -195,6 +196,17 @@ MODEL_KIND = "__MODEL_KIND__"
 def load_dataset():
     path = find_csv()
     if path is None:
+        if MODEL_KIND == "qboost":
+            iris = load_iris()
+            mask = iris.target < 2
+            X_raw = iris.data[mask]
+            y_raw = iris.target[mask]
+            df = pd.DataFrame(
+                X_raw,
+                columns=["sepal_length", "sepal_width", "petal_length", "petal_width"],
+            )
+            df["target"] = y_raw
+            return df, "target", True
         n = 200
         X = np.random.rand(n, 4)
         y = (X[:, 0] + X[:, 1] > 1.0).astype(int)
@@ -208,12 +220,88 @@ def load_dataset():
     return df, target, False
 
 
+def _simulated_annealing_qubo(Q, n_iter=30000, T_init=2.0, T_final=0.01):
+    rng = np.random.default_rng(SEED)
+    M = Q.shape[0]
+    w = rng.integers(0, 2, size=M).astype(float)
+    best_w = w.copy()
+    best_e = float(w @ Q @ w)
+    T_decay = (T_final / T_init) ** (1.0 / n_iter)
+    T = T_init
+    for _ in range(n_iter):
+        idx = rng.integers(M)
+        w_new = w.copy()
+        w_new[idx] = 1.0 - w_new[idx]
+        dE = float(w_new @ Q @ w_new) - float(w @ Q @ w)
+        if dE < 0 or rng.random() < np.exp(-dE / T):
+            w = w_new
+            cur = float(w @ Q @ w)
+            if cur < best_e:
+                best_e, best_w = cur, w.copy()
+        T *= T_decay
+    return best_w.astype(int)
+
+
 def build_model():
     if MODEL_KIND == "decision_tree":
         return DecisionTreeClassifier(random_state=SEED, max_depth=6)
     if MODEL_KIND == "random_forest":
         return RandomForestClassifier(n_estimators=100, random_state=SEED)
+    if MODEL_KIND == "adaboost":
+        return AdaBoostClassifier(
+            estimator=DecisionTreeClassifier(max_depth=1),
+            n_estimators=20, random_state=SEED, algorithm="SAMME"
+        )
     return LogisticRegression(max_iter=1000)
+
+
+def run_qboost(X_train, X_test, y_train, y_test):
+    y_tr = np.where(y_train == 0, -1, 1)
+    y_te = np.where(y_test == 0, -1, 1)
+    M = 20
+    stumps = []
+    for fi in range(X_train.shape[1]):
+        col = X_train[:, fi]
+        for thr in np.percentile(col, np.linspace(10, 90, 5)):
+            for pol in [1, -1]:
+                stumps.append((fi, thr, pol))
+    stump_accs = []
+    for fi, thr, pol in stumps:
+        preds = np.where(pol * (X_train[:, fi] - thr) >= 0, 1, -1)
+        stump_accs.append(accuracy_score(y_tr, preds))
+    top_idx = np.argsort(stump_accs)[::-1][:M]
+    stumps = [stumps[i] for i in top_idx]
+    H_tr = np.column_stack([
+        np.where(pol * (X_train[:, fi] - thr) >= 0, 1, -1) for fi, thr, pol in stumps
+    ])
+    H_te = np.column_stack([
+        np.where(pol * (X_test[:, fi] - thr) >= 0, 1, -1) for fi, thr, pol in stumps
+    ])
+    lam = 0.003  # small regularization so good classifiers are selected over zero solution
+    N = len(y_tr)
+    HtH = H_tr.T @ H_tr
+    Hty = H_tr.T @ y_tr
+    Q = np.zeros((M, M))
+    for j in range(M):
+        Q[j, j] = HtH[j, j] / N**2 - 2.0 * Hty[j] / N**2 + lam
+    for j in range(M):
+        for k in range(j+1, M):
+            Q[j, k] = 2.0 * HtH[j, k] / N**2
+    w_opt = _simulated_annealing_qubo(Q)
+    n_sel = int(w_opt.sum()) or 1
+    raw_tr = H_tr @ w_opt / n_sel
+    raw_te = H_te @ w_opt / n_sel
+    preds_tr = np.where(raw_tr >= 0, 1, -1)
+    preds_te = np.where(raw_te >= 0, 1, -1)
+    preds_tr_01 = np.where(preds_tr == 1, 1, 0)
+    preds_te_01 = np.where(preds_te == 1, 1, 0)
+    y_tr_01 = np.where(y_tr == 1, 1, 0)
+    y_te_01 = np.where(y_te == 1, 1, 0)
+    return (
+        float(accuracy_score(y_te_01, preds_te_01)),
+        float(f1_score(y_te_01, preds_te_01, average="weighted", zero_division=0)),
+        int(n_sel), w_opt, Q
+    )
 
 
 def main():
@@ -221,29 +309,58 @@ def main():
     y = df[target]
     numeric = df.select_dtypes(include="number")
     features = [c for c in numeric.columns if c != target]
-    X = numeric[features].fillna(numeric[features].median())
+    X_df = numeric[features].replace([np.inf, -np.inf], np.nan)
+    X_df = X_df.dropna(axis=1, how="all")
+    if X_df.empty:
+        raise SystemExit("no usable numeric feature columns available for classification")
+    X_df = X_df.fillna(X_df.median()).fillna(0.0)
+    valid = y.notna()
+    X = X_df.loc[valid].to_numpy()
+    y = y.loc[valid]
+    if len(y) < 4:
+        raise SystemExit("not enough non-missing target rows for classification")
     X = StandardScaler().fit_transform(X)
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.25, random_state=SEED, stratify=y if y.nunique() > 1 else None
+        X, y, test_size=0.2, random_state=SEED, stratify=y if y.nunique() > 1 else None
     )
-    model = build_model()
-    model.fit(X_train, y_train)
-    preds = model.predict(X_test)
-    acc = float(accuracy_score(y_test, preds))
-    f1 = float(f1_score(y_test, preds, average="weighted", zero_division=0))
 
-    fig, ax = plt.subplots(figsize=(5, 4))
-    ax.bar(["accuracy", "f1"], [acc, f1], color="#2a9d8f")
-    ax.set_ylim(0, 1)
-    ax.set_title(f"{MODEL_KIND} classification metrics")
-    fig.tight_layout()
-    fig.savefig(OUTPUT_DIR / "classification_metrics.png", dpi=120)
-
-    write_metrics({
-        "accuracy": acc, "f1": f1, "n_classes": int(y.nunique()),
-        "n_test": int(len(y_test)), "synthetic_data": 1 if synthetic else 0,
-    })
-    print(f"model={MODEL_KIND} accuracy={acc:.4f} f1={f1:.4f}")
+    if MODEL_KIND == "qboost":
+        acc, f1, n_sel, w_opt, Q = run_qboost(
+            X_train, X_test, y_train.to_numpy(), y_test.to_numpy()
+        )
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        axes[0].bar(["accuracy", "f1"], [acc, f1], color="#2a9d8f")
+        axes[0].set_ylim(0, 1)
+        axes[0].set_title("QBoost performance")
+        im = axes[1].imshow(Q, cmap="RdBu_r", aspect="auto")
+        plt.colorbar(im, ax=axes[1])
+        axes[1].set_title("QUBO matrix Q")
+        fig.tight_layout()
+        fig.savefig(OUTPUT_DIR / "classification_metrics.png", dpi=120)
+        write_metrics({
+            "accuracy": acc, "f1": f1, "n_selected_classifiers": n_sel,
+            "n_classes": int(y.nunique()), "n_test": int(len(y_test)),
+            "synthetic_data": 1 if synthetic else 0,
+        })
+        print(f"model=qboost accuracy={acc:.4f} f1={f1:.4f} selected={n_sel}/20")
+    else:
+        y_train_arr, y_test_arr = y_train.to_numpy(), y_test.to_numpy()
+        model = build_model()
+        model.fit(X_train, y_train_arr)
+        preds = model.predict(X_test)
+        acc = float(accuracy_score(y_test_arr, preds))
+        f1 = float(f1_score(y_test_arr, preds, average="weighted", zero_division=0))
+        fig, ax = plt.subplots(figsize=(5, 4))
+        ax.bar(["accuracy", "f1"], [acc, f1], color="#2a9d8f")
+        ax.set_ylim(0, 1)
+        ax.set_title(f"{MODEL_KIND} classification metrics")
+        fig.tight_layout()
+        fig.savefig(OUTPUT_DIR / "classification_metrics.png", dpi=120)
+        write_metrics({
+            "accuracy": acc, "f1": f1, "n_classes": int(y.nunique()),
+            "n_test": int(len(y_test)), "synthetic_data": 1 if synthetic else 0,
+        })
+        print(f"model={MODEL_KIND} accuracy={acc:.4f} f1={f1:.4f}")
 
 
 if __name__ == "__main__":

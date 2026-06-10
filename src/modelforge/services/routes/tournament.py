@@ -9,6 +9,7 @@ selection is reproducible and auditable.
 from __future__ import annotations
 
 from modelforge.schemas.route import (
+    ModelingRoute,
     PairwiseComparison,
     RouteScore,
     RouteSet,
@@ -27,7 +28,7 @@ CRITERION_WEIGHTS: dict[str, float] = {
 }
 
 
-def score_route(route) -> RouteScore:  # route: ModelingRoute
+def score_route(route: ModelingRoute) -> RouteScore:
     em = route.expected_metrics
     vals = {k: max(0.0, min(1.0, float(em.get(k, 0.0)))) for k in CRITERION_WEIGHTS}
     total = sum(CRITERION_WEIGHTS[k] * vals[k] for k in CRITERION_WEIGHTS)

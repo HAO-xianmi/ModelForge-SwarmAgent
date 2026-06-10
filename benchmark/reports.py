@@ -32,9 +32,9 @@ def render_report_markdown(report: CompetitionJudgeReport) -> str:
     ]
     for d in report.dimension_scores:
         s = "-" if d.structural_score is None else f"{d.structural_score:.1f}"
-        l = "-" if d.llm_score is None else f"{d.llm_score:.1f}"
+        llm = "-" if d.llm_score is None else f"{d.llm_score:.1f}"
         flag = "! unverified" if d.evidence_unverified else ("yes" if d.evidence else "-")
-        lines.append(f"| {d.name} | {s} | {l} | {d.final_score:.1f} | {flag} |")
+        lines.append(f"| {d.name} | {s} | {llm} | {d.final_score:.1f} | {flag} |")
     m = report.structural_metrics
     lines += [
         "",
@@ -52,7 +52,7 @@ def render_report_markdown(report: CompetitionJudgeReport) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render_calibration_markdown(cal: "CalibrationResult") -> str:
+def render_calibration_markdown(cal: CalibrationResult) -> str:
     verdict = "PASS" if cal.passed else "FAIL"
     lines = [
         "# CompetitionJudge calibration",
@@ -87,7 +87,7 @@ def render_calibration_markdown(cal: "CalibrationResult") -> str:
     return "\n".join(lines) + "\n"
 
 
-def calibration_to_json(cal: "CalibrationResult") -> str:
+def calibration_to_json(cal: CalibrationResult) -> str:
     payload = {
         "provider": cal.provider,
         "n_judges": cal.n_judges,

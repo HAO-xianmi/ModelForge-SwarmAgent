@@ -135,6 +135,24 @@ class BundleExporter:
                 "citations/citations.json",
                 json.dumps([c.model_dump(mode="json") for c in state.citations], indent=2),
             )
+            if state.judge_panel_reports:
+                zf.writestr(
+                    "quality/judge_panel_reports.json",
+                    json.dumps(
+                        [
+                            report.model_dump(mode="json")
+                            for report in state.judge_panel_reports
+                        ],
+                        indent=2,
+                    ),
+                )
+                zf.writestr(
+                    "quality/latest_judge_panel_report.json",
+                    json.dumps(
+                        state.judge_panel_reports[-1].model_dump(mode="json"),
+                        indent=2,
+                    ),
+                )
 
         return buf.getvalue(), manifest
 
